@@ -2,24 +2,28 @@ import IsentropicTools as IT
 import numpy as np
 import matplotlib.pyplot as plt
 from rich import print 
+import CombustionChamber as CC
+import Parameters as Param
 
-M_exit = 2.5
-g = 1.22
+M_exit = Param.M_exit
+g = Param.g
 v_e = IT.PM(M_exit, g) #Exit Prandtl-Meyer angle
 dv = (v_e - IT.PM(1.0, g)) / 20 #Incremental angle change
 
-P_combustion = 3.3 * 10 ** 5 #Pascal
-T_combustion = 2700 #Kelvin
+P_combustion = Param.P_combustion
+T_combustion = Param.T_combustion
 
-R = 8.314
-Mw = 0.0265 #kg/mol
-Rs = R / Mw
-mdot = 0.312 #kg/s
+R = Param.R
+Mw = Param.Mw
+Rs = Param.Rs
+mdot = Param.mdot
 
 k_max = int(1/2 * v_e / dv + 1)
 n_max = int(1/2 * v_e / dv + 1)
 
-L = 4.5 #theoretical throat radius in mm
+L = Param.L #theoretical throat radius in mm
+L_combustion = Param.L_combustion #mm
+D_combustion = Param.D_combustion #mm
 
 class GridField:
     def __init__(self, k_max, n_max):
@@ -180,29 +184,17 @@ for NII in range(1, int(n_max) + 1):
 
 # Calculating the circular radius near the throat, because I don't like how NASA just has a sharp edge + circular based 
 
+
 Radius = wall_x[0] / np.sin(phi_k(k_max, dv))
 # at what x position would it be 45 degrees?
 # R / sqrt(2) tbh
 x_arc = np.linspace(-Radius * np.sqrt(2)/2, wall_x[0], 20)
 y_arc = -np.sqrt(Radius**2 - x_arc**2) + wall_y[0] + Radius * np.cos(phi_k(k_max, dv))
 
-def chamber_slope(y):
-    return -1 * (y - y_arc[0]) + x_arc[0]
-
-y_contract = np.linspace(y_arc[0], 25, 5)
-x_contract = chamber_slope(y_contract)
-
 wall_x = np.append(x_arc, wall_x)
 wall_y = np.append(y_arc, wall_y)
 
-# wall_x = np.append(x_contract, wall_x)
-# wall_y = np.append(y_contract, wall_y)
-
-# chamber_x = np.linspace(x_contract[-1]-100, x_contract[-1], 2)
-# chamber_y = np.ones(2) * y_contract[-1]
-
-# wall_x = np.append(chamber_x, wall_x)
-# wall_y = np.append(chamber_y, wall_y)
+wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, x_arc, y_arc)
 
 wall_y_mirrored = -wall_y
 #plt.plot(x_arc, y_arc, color = 'blue')
