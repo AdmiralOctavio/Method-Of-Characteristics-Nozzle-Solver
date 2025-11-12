@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from rich import print 
 import CombustionChamber as CC
 import Parameters as Param
+from scipy.interpolate import interp1d
+from scipy.interpolate import CubicHermiteSpline
 
 M_exit = Param.M_exit
 g = Param.g
@@ -187,9 +189,13 @@ wall_y_truncated = wall_y[split_index:]
 wall_x = wall_x[:split_index]
 wall_y = wall_y[:split_index]
 
+x_calc = grid.get_x(1, n_max-1)
 
+calc_interp = interp1d(wall_x, wall_y, kind = 'cubic')
+y_calc = calc_interp(x_calc)
 
 # Calculating the circular radius near the throat, because I don't like how NASA just has a sharp edge + circular based 
+
 
 
 Radius = wall_x[0] / np.sin(phi_k(k_max, dv))
@@ -197,6 +203,21 @@ Radius = wall_x[0] / np.sin(phi_k(k_max, dv))
 # R / sqrt(2) tbh
 x_arc = np.linspace(-Radius * np.sqrt(2)/2, wall_x[0], 20)
 y_arc = -np.sqrt(Radius**2 - x_arc**2) + wall_y[0] + Radius * np.cos(phi_k(k_max, dv))
+
+def parabolatest():
+    X = np.array([-Radius * np.sqrt(2)/2, wall_x[0]])
+    Y = np.array([y_arc[0], y_arc[-1]])
+    dydx = np.array([-1, np.arctan(phi_k(k_max, dv))])
+
+    chs = CubicHermiteSpline(X, Y, dydx)
+
+    x_poly = np.linspace(-Radius * np.sqrt(2)/2, wall_x[0], 20)
+    y_poly = chs(x_poly)
+
+    return x_poly, y_poly
+
+x_arc, y_arc = parabolatest()
+y_min = np.min(y_arc)
 
 wall_x = np.append(x_arc, wall_x)
 wall_y = np.append(y_arc, wall_y)
@@ -206,18 +227,8 @@ wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, x_arc, y_arc)
 wall_y_mirrored = -wall_y
 #plt.plot(x_arc, y_arc, color = 'blue')
 
-x_calc, y_calc = grid.get_xy(1, n_max-1)
-
-difference = np.abs(wall_x - x_calc)
-index = difference.argmin()
-if wall_x[index] - x_calc < 0:
-    y_calc = wall_y[index] + (wall_y[index+1] - wall_y[index])/(wall_x[index+1] - wall_x[index]) * (x_calc - wall_x[index])
-else:
-    y_calc = wall_y[index] + (wall_y[index] - wall_y[index-1])/(wall_x[index] - wall_x[index-1]) * (x_calc - wall_x[index-1])
-
-
 A_calc = (y_calc/1000)**2 * np.pi
-A_throat = (y_arc[5]/1000)**2 * np.pi
+A_throat = (y_min/1000)**2 * np.pi
 
 M_exit_true = IT.AreaRatioInverse(A_calc / A_throat, g)
 P_exit = IT.Pressure(P_combustion, g, M_exit_true)
@@ -228,17 +239,19 @@ Ve = A * M_exit_true
 Thrust = mdot * Ve + (P_exit - 101325) * A_exit
 Exit_Angle = np.rad2deg(np.arctan2(wall_y[-1] - wall_y[-2], wall_x[-1] - wall_x[-2]))
 
-print(f"[bold]Output nozzle design specifications:[/bold]")
-print(f"Total length: {wall_x[-1]:.2f} mm")
-print(f"Exit radius: {wall_y[-1]:.2f} mm")
-print(f"Exit Angle: {Exit_Angle:.2f} Degrees")
-print(f"Throat Radius: {y_arc[5]:.2f} mm \n")
-print(f"Theoretical expansion ratio: {(wall_y[-1]**2 / L**2):.2f}")
-print(f"True expansion ratio: {(wall_y[-1]**2 / y_arc[5]**2):.2f}")
-print(f"Design Exit Mach: {M_exit}")
-print(f"Predicted Exit Mach: {M_exit_true:.2f}")
-print(f"Predicted Thrust: {Thrust:.2f} N")
-print(f"Predicted Exit pressure: {P_exit} Pa")
+print("----------------------------------------------------")
+print(f"[bold][red]Output nozzle design specifications:[/bold][/red]")
+print(f"[cyan]Total length: \t \t {wall_x[-1]:.2f} mm[/cyan]")
+print(f"[cyan]Exit radius: \t \t {wall_y[-1]:.2f} mm[/cyan]")
+if Exit_Angle > 6: print(f"[red]Exit Angle: \t \t {Exit_Angle:.2f} Degrees[/red]")
+else: print(f"[cyan]Exit Angle: \t \t {Exit_Angle:.2f} Degrees[/cyan]")
+print(f"[cyan]True Throat Radius: \t {y_min:.2f} mm \n[/cyan]")
+print(f"Theoretical expansion ratio: \t {(wall_y[-1]**2 / L**2):.2f}")
+print(f"True expansion ratio: \t \t {(wall_y[-1]**2 / y_min**2):.2f}")
+print(f"Design Exit Mach: \t \t {M_exit}")
+print(f"Predicted Exit Mach: \t \t {M_exit_true:.2f}")
+print(f"Predicted Thrust: \t \t {Thrust:.0f} N")
+print(f"Predicted Exit pressure: \t {P_exit:.0f} Pa")
 
 plt.plot(wall_x, wall_y, color = 'blue')
 plt.plot(wall_x, wall_y_mirrored, color = 'blue')
