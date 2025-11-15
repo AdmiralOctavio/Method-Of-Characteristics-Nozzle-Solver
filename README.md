@@ -12,3 +12,5 @@ Numpy
 Scipy
 Matplotlib
 Rich
+RocketCEA
+Fortran Compiler

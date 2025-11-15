@@ -251,15 +251,18 @@ def solver(Graph, Write):
 
     print("----------------------------------------------------")
     print(f"[bold][red]Output nozzle design specifications:[/bold][/red]")
-    print(f"[cyan]Total length: \t \t {wall_x[-1]:.2f} mm[/cyan]")
-    print(f"[cyan]Exit radius: \t \t {wall_y[-1]:.2f} mm[/cyan]")
+    print(f"[dark_turquoise]Total length: \t \t {wall_x[-1]:.2f} mm")
+    print(f"[cyan3]Exit radius: \t \t {wall_y[-1]:.2f} mm")
     if Exit_Angle > 6: print(f"[red]Exit Angle: \t \t {Exit_Angle:.2f} Degrees[/red]")
-    else: print(f"[cyan]Exit Angle: \t \t {Exit_Angle:.2f} Degrees[/cyan]")
-    print(f"[cyan]True Throat Radius: \t {y_min:.2f} mm \n[/cyan]")
+    else: print(f"[dark_turquoise]Exit Angle: \t \t {Exit_Angle:.2f} Degrees")
+    print(f"[cyan3]True Throat Radius: \t {y_min:.2f} mm \n")
 
-    print(f"Optimal pressure ratio: \t {P_combustion / 101325:.2f}")
-    print(f"Optimal exit Mach: \t \t {M_optimal:.2f}")
-    print(f"Optimal expansion ratio: \t {IT.AreaRatio(g, M_optimal):.2f} \n")
+    print(f"[orange_red1]Combustion Temperature:\t {Param.T_combustion:.2f} K")
+    print(f"[dark_orange]Gamma: \t \t \t {Param.g:.2f}")
+
+    print(f"[sky_blue2]\nOptimal pressure ratio: \t {P_combustion / 101325:.2f}")
+    print(f"[light_sky_blue3]Optimal exit Mach: \t \t {M_optimal:.2f}")
+    print(f"[sky_blue2]Optimal expansion ratio: \t {IT.AreaRatio(g, M_optimal):.2f} \n")
 
     print(f"[green]Theoretical expansion ratio: \t {(wall_y[-1]**2 / L**2):.2f}")
     print(f"[light_green]True expansion ratio: \t \t {(y_calc**2 / y_min**2):.2f}")
@@ -279,6 +282,7 @@ def solver(Graph, Write):
         print(f"[yellow3][bold]\nWarning: Nearing exit instability region.")
     else: print(f"[light_green]Predicted Exit pressure: \t {P_exit:.0f} Pa")
     print(f"[green]Specific Impulse: \t \t {Ve / 9.80665:.2f} s")
+    
 
 
     #plt.plot(wall_x, wall_y, color = 'blue')
