@@ -11,7 +11,7 @@ from scipy.optimize import root_scalar
 M_exit = Param.M_exit
 g = Param.g
 v_e = IT.PM(M_exit, g) #Exit Prandtl-Meyer angle
-dv = (v_e - IT.PM(1.0, g)) / 20 #Incremental angle change
+dv = (v_e - IT.PM(1.0, g)) / 150 #Incremental angle change
 
 P_combustion = Param.P_combustion
 T_combustion = Param.T_combustion
@@ -282,6 +282,7 @@ def solver(Graph, Write):
         print(f"[yellow3][bold]\nWarning: Nearing exit instability region.")
     else: print(f"[light_green]Predicted Exit pressure: \t {P_exit:.0f} Pa")
     print(f"[green]Specific Impulse: \t \t {Ve / 9.80665:.2f} s")
+    print(f"[light_green]Specific Impulse (CEA): \t {Param.ISP_cea:.2f} s")
     
 
 
