@@ -7,6 +7,7 @@ import Parameters as Param
 from scipy.interpolate import interp1d
 from scipy.interpolate import CubicHermiteSpline
 from scipy.optimize import root_scalar
+import stlgenerator
 
 M_exit = Param.M_exit
 g = Param.g
@@ -114,7 +115,7 @@ def coords(k, n, dv, g, grid):
     return x_kn, y_kn
 
 #basically the wall points are defined as kmax, 1 -> kmax - 1, 2, ... 2, nmax - 1.
-def solver(Graph, Write):
+def solver(Graph, Write, Model):
     grid.set_xy(1, 1, -1/(slopes(1, 1, dv, g)[1]), 0.0)
 
     #for K in range(1, int(k_max) + 1):
@@ -316,4 +317,7 @@ def solver(Graph, Write):
         filename = f"Nozzle_Contour_M={M_exit_true:.2f}.csv"
         np.savetxt(filename, combined, delimiter=",", header = "x_position (mm), y_radius (mm)", comments = "")
 
-solver(True, True)
+    if Model == True:
+        stlgenerator.create_stl(wall_x, wall_y, M_exit_true)
+
+solver(True, False, True)

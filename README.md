@@ -14,3 +14,4 @@ Matplotlib
 Rich
 RocketCEA
 Fortran Compiler
+numpy-stl
