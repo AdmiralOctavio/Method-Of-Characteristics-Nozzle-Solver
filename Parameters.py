@@ -18,7 +18,7 @@ ISP_cea = configuration[0]
 R = 8.314
 Mw = 0.0265 #kg/mol
 Rs = R / Mw
-mdot = 0.225 #kg/s
+mdot = 0.230 #kg/s
 
 L = 5.75 #theoretical throat radius in mm
 

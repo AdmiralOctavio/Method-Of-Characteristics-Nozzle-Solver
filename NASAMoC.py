@@ -14,6 +14,9 @@ g = Param.g
 v_e = IT.PM(M_exit, g) #Exit Prandtl-Meyer angle
 dv = (v_e - IT.PM(1.0, g)) / 150 #Incremental angle change
 
+k_max = int(1/2 * v_e / dv + 1)
+n_max = int(1/2 * v_e / dv + 1)
+
 P_combustion = Param.P_combustion
 T_combustion = Param.T_combustion
 
@@ -21,9 +24,6 @@ R = Param.R
 Mw = Param.Mw
 Rs = Param.Rs
 mdot = Param.mdot
-
-k_max = int(1/2 * v_e / dv + 1)
-n_max = int(1/2 * v_e / dv + 1)
 
 M_optimal = np.sqrt(((P_combustion / 101325)**((g-1)/g) - 1) * 2 / (g-1))
 
@@ -252,26 +252,29 @@ def solver(Graph, Write, Model, DXF):
 
     print("----------------------------------------------------")
     print(f"[bold][red]Output nozzle design specifications:[/bold][/red]")
-    print(f"[dark_turquoise]Total length: \t \t {wall_x[-1]:.2f} mm")
-    print(f"[cyan3]Exit radius: \t \t {wall_y[-1]:.2f} mm")
-    if Exit_Angle > 6: print(f"[red]Exit Angle: \t \t {Exit_Angle:.2f} Degrees[/red]")
-    else: print(f"[dark_turquoise]Exit Angle: \t \t {Exit_Angle:.2f} Degrees")
-    print(f"[cyan3]True Throat Radius: \t {y_min:.2f} mm \n")
+    print("[cyan3]___________________________________________________________________________________________")
+    print(f"[dark_turquoise]Nozzle length: \t \t \t {wall_x[-1]:.2f} mm \t | Total length: \t \t {wall_x[-1] - wall_x[0]:.2f} mm")
+    if Exit_Angle > 6: print(f"[red]Exit Angle: \t \t \t {Exit_Angle:.2f} Degrees[/red] \t [cyan3]| Exit radius: \t \t {wall_y[-1]:.2f} mm")
+    else: print(f"[cyan3]Exit Angle: \t \t \t {Exit_Angle:.2f} Degrees \t | Exit radius: \t \t {wall_y[-1]:.2f} mm")
+    print(f"[dark_turquoise]True Throat Radius: \t \t {y_min:.2f} mm \t |")
 
-    print(f"[orange_red1]Combustion Temperature:\t {Param.T_combustion:.2f} K")
-    print(f"[dark_orange]Gamma: \t \t \t {Param.g:.2f}")
+    print("[dark_orange]___________________________________________________________________________________________")
 
-    print(f"[sky_blue2]\nOptimal pressure ratio: \t {P_combustion / 101325:.2f}")
-    print(f"[light_sky_blue3]Optimal exit Mach: \t \t {M_optimal:.2f}")
-    print(f"[sky_blue2]Optimal expansion ratio: \t {IT.AreaRatio(g, M_optimal):.2f} \n")
+    print(f"[orange_red1]Combustion Temperature:\t \t {Param.T_combustion:.2f} K \t | Gamma: \t \t \t {Param.g:.2f}")
 
-    print(f"[green]Theoretical expansion ratio: \t {(wall_y[-1]**2 / L**2):.2f}")
-    print(f"[light_green]True expansion ratio: \t \t {(y_calc**2 / y_min**2):.2f}")
-    print(f"[green]Design Exit Mach: \t \t {M_exit}")
-    print(f"[light_green]Predicted Exit Mach: \t \t {M_exit_true:.2f}")
-    print(f"[green]Predicted Thrust: \t \t {Thrust:.0f} N")
-    print(f"[light_green]> Thrust from Massflow: \t {mdot * Ve:.2f} N")
-    print(f"[green]> Thrust from Pressure: \t {(P_exit - 101325) * A_exit:.2f} N")
+    print("[light_sky_blue3]___________________________________________________________________________________________")
+
+    print(f"[sky_blue2]Optimal pressure ratio: \t {P_combustion / 101325:.2f} \t \t |")
+    print(f"[light_sky_blue3]Optimal exit Mach: \t \t {M_optimal:.2f} \t \t |")
+    print(f"[sky_blue2]Optimal expansion ratio: \t {IT.AreaRatio(g, M_optimal):.2f} \t \t |")
+
+    print("[light_green]___________________________________________________________________________________________")
+
+    print(f"[green_yellow]Theoretical expansion ratio: \t {(wall_y[-1]**2 / L**2):.2f} \t \t | True expansion ratio: \t {(y_calc**2 / y_min**2):.2f}")
+    print(f"[light_green]Design Exit Mach: \t \t {M_exit} \t \t | Predicted Exit Mach: \t {M_exit_true:.2f}")
+    print(f"[green_yellow]Predicted Thrust: \t \t {Thrust:.0f} N \t \t |")
+    print(f"[light_green]> Thrust from Massflow: \t {mdot * Ve:.2f} N \t | > Thrust from Pressure: \t {(P_exit - 101325) * A_exit:.2f} N")
+
     if P_exit < 0.25 * 101325: 
         print(f"[bold][red]Predicted Exit pressure: \t {P_exit:.0f} Pa")
         print(f"[bold][red]\nWARNING: Flow separation will be present at the nozzle exit.")
@@ -281,11 +284,8 @@ def solver(Graph, Write, Model, DXF):
     elif 0.4 * 101325 < P_exit < 0.5 * 101325: 
         print(f"[yellow3][bold]Predicted Exit pressure: \t {P_exit:.0f} Pa")
         print(f"[yellow3][bold]\nWarning: Nearing exit instability region.")
-    else: print(f"[light_green]Predicted Exit pressure: \t {P_exit:.0f} Pa")
-    print(f"[green]Specific Impulse: \t \t {Ve / 9.80665:.2f} s")
-    print(f"[light_green]Specific Impulse (CEA): \t {Param.ISP_cea:.2f} s")
-    
-
+    else: print(f"[green_yellow]Predicted Exit pressure: \t {P_exit:.0f} Pa \t |")
+    print(f"[light_green]Specific Impulse: \t \t {Ve / 9.80665:.2f} s \t | [light_green]Specific Impulse (CEA): \t {Param.ISP_cea:.2f} s")
 
     #plt.plot(wall_x, wall_y, color = 'blue')
     #plt.plot(wall_x, wall_y_mirrored, color = 'blue')
@@ -323,4 +323,4 @@ def solver(Graph, Write, Model, DXF):
     if DXF == True:
         stlgenerator.create_dxf(wall_x, wall_y, M_exit_true)
 
-solver(Graph = True, Write = False, Model = False, DXF = False)
+solver(Graph = False, Write = False, Model = False, DXF = False)
