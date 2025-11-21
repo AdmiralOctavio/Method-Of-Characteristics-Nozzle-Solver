@@ -30,6 +30,9 @@ def Temperature(T0, g, M):
 def LocalSoS(g, Rs, T):
     return np.sqrt(g * Rs * T)
 
+def Density(P, Rs, T):
+    return P / (Rs * T)
+
 def AreaRatio(M, g):
     term1 = (2 / (g + 1)) * (1 + (g - 1) / 2 * M**2)
     exponent = (g + 1) / (2 * (g - 1))

@@ -6,32 +6,35 @@ import CombustionChamber as CC
 import Parameters as Param
 from scipy.interpolate import interp1d
 from scipy.interpolate import CubicHermiteSpline
+from scipy.integrate import quad
+import scipy as sp
 from scipy.optimize import root_scalar
 import stlgenerator
 import TemperatureAnalysis as TA
 
+Refinement = Param.Refinement
 M_exit = Param.M_exit
 g = Param.g
-v_e = IT.PM(M_exit, g) #Exit Prandtl-Meyer angle
-dv = (v_e - IT.PM(1.0, g)) / 150 #Incremental angle change
-
+v_e = IT.PM(M_exit, g) 
+dv = (v_e - IT.PM(1.0, g)) / Refinement 
 k_max = int(1/2 * v_e / dv + 1)
 n_max = int(1/2 * v_e / dv + 1)
-
 P_combustion = Param.P_combustion
 T_combustion = Param.T_combustion
-
 R = Param.R
 Mw = Param.Mw
 Rs = Param.Rs
 mdot = Param.mdot
-
 M_optimal = np.sqrt(((P_combustion / 101325)**((g-1)/g) - 1) * 2 / (g-1))
-
-L = Param.L #theoretical throat radius in mm
-L_combustion = Param.L_combustion #mm
-D_combustion = Param.D_combustion #mm
+L = Param.L 
+L_combustion = Param.L_combustion 
+D_combustion = Param.D_combustion 
 SP = Param.Shorten_Percentage
+Graph = Param.Graph
+Write = Param.Write
+Stl = Param.Stl
+Dxf = Param.Dxf
+Temperature = Param.Temperature
 
 fig, ax = plt.subplots(figsize=(12, 6))
 CUSTOM_GRAY_FIG = "#161619"
@@ -158,18 +161,6 @@ def solver(Graph, Write, Model, DXF, Temperature):
         
         print(f"\n Ending Layer No. {N}\n")
 
-
-    #Prints the characteristics of Family I
-    for NI in range(1, n_max+1):
-        x_line = []
-        y_line = []
-
-        for KI in range(1, int(k_max) - NI + 2):
-            x_kn, y_kn = grid.get_xy(KI, NI)
-            x_line.append(x_kn)
-            y_line.append(y_kn)
-        ax.plot(x_line, y_line, color="#CA56FF", linestyle='--', alpha=0.5)
-
     wall_x = []
     wall_y = []
 
@@ -200,19 +191,30 @@ def solver(Graph, Write, Model, DXF, Temperature):
     wall_x = wall_x[:split_index]
     wall_y = wall_y[:split_index]
 
+    #Prints the characteristics of Family I
+    ks = []
+    ns = []
+    for NI in range(1, n_max+1):
+        x_line = []
+        y_line = []
+
+        for KI in range(1, int(k_max) - NI + 2):
+            x_kn, y_kn = grid.get_xy(KI, NI)
+            x_line.append(x_kn)
+            y_line.append(y_kn)
+        if 0 < GridField.get_x(grid, int(k_max) - NI + 1, NI) < wall_x[-1]:
+            ax.plot(x_line, y_line, color="#CA56FF", linestyle='--', alpha=0.5)
+        elif GridField.get_x(grid, int(k_max) - NI + 1, NI) >= wall_x[-1]:  
+            ax.plot(x_line, y_line, color="#68F100", linestyle='--', alpha=0.5)
+            ks.append(int(k_max) - NI + 1)
+            print(f"K = {int(k_max) - NI + 1}, N = {NI}, x = {GridField.get_x(grid, int(k_max) - NI + 1, NI)}, y = {GridField.get_xy(grid, int(k_max) - NI + 1, NI)[1]}")
+            ns.append(NI)
+
     x_calc = grid.get_x(1, n_max-1)
 
-    #calc_interp = interp1d(wall_x, wall_y, kind = 'cubic')
-    #y_calc = calc_interp(x_calc)
     y_calc = wall_y[-1]
 
-    # Calculating the circular radius near the throat, because I don't like how NASA just has a sharp edge + circular based 
-
-
-
     Radius = wall_x[0] / np.sin(phi_k(k_max, dv))
-    # at what x position would it be 45 degrees?
-    # R / sqrt(2) tbh
     x_arc = np.linspace(-Radius * np.sqrt(2)/2, wall_x[0], 20)
     y_arc = -np.sqrt(Radius**2 - x_arc**2) + wall_y[0] + Radius * np.cos(phi_k(k_max, dv))
 
@@ -237,7 +239,6 @@ def solver(Graph, Write, Model, DXF, Temperature):
     wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, x_arc, y_arc, 10)
 
     wall_y_mirrored = -wall_y
-    #plt.plot(x_arc, y_arc, color = 'blue')
 
     A_calc = (y_calc/1000)**2 * np.pi
     A_throat = (y_min/1000)**2 * np.pi
@@ -252,6 +253,81 @@ def solver(Graph, Write, Model, DXF, Temperature):
     Exit_Angle = np.rad2deg(np.arctan2(wall_y[-1] - wall_y[-2], wall_x[-1] - wall_x[-2]))
 
     Temperature_profile = TA.LocalTemperature(wall_x, wall_y)
+
+
+    def ExitMachDistribution(wall_x, wall_y):
+        M_list = []
+        x_list = []
+        K_exit = np.max(ks)
+        print(K_exit)
+        N_exit = n_max + 1 - K_exit
+        print(f"N_exit = {N_exit}")
+        CenterLine_x = np.array([])
+        CenterLine_y = np.zeros(K_exit-1)
+        Exit_x = np.ones(K_exit-1) * wall_x[-1]
+        Exit_y = np.array([])
+        Contour_x = np.array([])
+        Contour_y = np.array([])
+        ys = []
+        for n in range(N_exit, n_max):
+            x, a = GridField.get_xy(grid, 1, n)
+            index = np.argmin(np.abs(wall_x - x))
+            y = wall_y[index]
+            ys.append(y)
+            if ys[n - N_exit] == ys[n-1 - N_exit] and n > N_exit:
+                ys[n - N_exit] = (ys[n - N_exit] + wall_y[index + 1])/2
+            y = ys[n - N_exit]
+
+            k = int(k_max - n + 1)
+            wallx, wally = GridField.get_xy(grid, k, n)
+            Contour_x = np.append(Contour_x, wallx)
+            Contour_y = np.append(Contour_y, wally)
+            
+            CenterLine_x = np.append(CenterLine_x, x)
+            M_list.append(IT.AreaRatioInverse((y**2 / y_min**2), g, 'supersonic'))
+        
+        def line(x1, x2, y1, y2, x):
+            return y1 + (y2 - y1) * (x - x1) / (x2 - x1)
+        
+        for i in range(len(Contour_x)):
+            y = line(CenterLine_x[i], Contour_x[i], 0, Contour_y[i], wall_x[-1])
+            Exit_y = np.append(Exit_y, y)
+        
+        return np.array(M_list), Exit_y
+
+    M_distribution, Exit_y = ExitMachDistribution(wall_x, wall_y)
+    M_distribution = np.append(M_distribution, M_exit_true)
+    Exit_y = np.append(Exit_y, 0)
+
+    def MassWeightedThrust():
+        coeffs = np.polyfit(Exit_y, M_distribution, 2)
+        a, b, c = coeffs
+        def M(y): return a * y**2 + b*y + c
+
+        def Ve_local(y):
+            return M(y) * IT.LocalSoS(g, Rs, IT.Temperature(T_combustion, g, M(y)))
+        
+        def Density_local(y):
+            P_local = IT.Pressure(P_combustion, g, M(y))
+            T_local = IT.Temperature(T_combustion, g, M(y))
+            return IT.Density(P_local, Rs, T_local)
+
+        def integrand_num(y):
+            return Ve_local(y) * y * Density_local(y)
+        
+        def integrand_den(y):
+            return y * Density_local(y)
+        
+        numerator, _ = quad(integrand_num, 0, wall_y[-1])
+        denominator, _ = quad(integrand_den, 0, wall_y[-1])
+
+        Ve_avg = numerator / denominator
+        Thrust_mw = mdot * Ve_avg + (P_exit - 101325) * A_exit
+        return Ve_avg, Thrust_mw
+        
+    Ve_mw, Thrust_mw = MassWeightedThrust()
+
+    # --- OUTPUT SECTION ---
 
     print("----------------------------------------------------")
     print(f"[bold][red]Output nozzle design specifications:[/bold][/red]")
@@ -289,9 +365,8 @@ def solver(Graph, Write, Model, DXF, Temperature):
         print(f"[yellow3][bold]\nWarning: Nearing exit instability region.")
     else: print(f"[green_yellow]Predicted Exit pressure: \t {P_exit:.0f} Pa \t |")
     print(f"[light_green]Specific Impulse: \t \t {Ve / 9.80665:.2f} s \t | [light_green]Specific Impulse (CEA): \t {Param.ISP_cea:.2f} s")
-
-    #plt.plot(wall_x, wall_y, color = 'blue')
-    #plt.plot(wall_x, wall_y_mirrored, color = 'blue')
+    print("[blue_violet]___________________________________________________________________________________________")
+    print(f"[blue_violet]Mass-Weighted Thrust: \t \t {Thrust_mw:.2f} N \t | [blue_violet]Mass-Weighted Isp: \t \t {Ve_mw / 9.80665:.2f} s")
 
     ax.plot(wall_x, wall_y, color = '#1E90FF', linewidth=2, label='Nozzle Wall Contour (MoC)')
     ax.plot(wall_x, wall_y_mirrored, color = '#1E90FF', linewidth=2)
@@ -315,7 +390,7 @@ def solver(Graph, Write, Model, DXF, Temperature):
         y_plot_upper = f_y(x_plot)
         T_plot = f_T(x_plot)
 
-        num_y_steps = 50 
+        num_y_steps = 250 
         
         X_mesh, Y_mesh = np.meshgrid(x_plot, np.linspace(-1, 1, num_y_steps))
 
@@ -328,18 +403,13 @@ def solver(Graph, Write, Model, DXF, Temperature):
 
         gradient_fill = ax.pcolormesh(X_mesh, Y_mesh_scaled, Z_temp, 
                                     cmap='plasma', shading='auto', 
-                                    vmin=T_min, vmax=T_max)
+                                    vmin=T_min, vmax=T_max + 200)
         
         cbar = fig.colorbar(gradient_fill, ax=ax, orientation='vertical')
         cbar.set_label('Local Static Temperature (K)', color='white')
         cbar.ax.yaxis.set_tick_params(color='white')
         plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color='white')
 
-    # plt.title("Nozzle Wall Contour")
-    # plt.xlabel("x (mm)")
-    # plt.ylabel("y (mm)")
-    # plt.axis('equal')
-    # plt.grid(True)
     if Graph == True: plt.show()
 
     if Write == True:
@@ -352,5 +422,6 @@ def solver(Graph, Write, Model, DXF, Temperature):
     
     if DXF == True:
         stlgenerator.create_dxf(wall_x, wall_y, M_exit_true)
-    #print(Temperature_profile)
-solver(Graph = True, Write = False, Model = False, DXF = False, Temperature = True)
+    
+    
+solver(Graph, Write, Stl, Dxf, Temperature)

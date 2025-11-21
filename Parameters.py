@@ -1,7 +1,15 @@
 from rocketcea.cea_obj_w_units import CEA_Obj
 
-#Everything here can (and probably should) be changed to suit your own engine. Except the units. Don't touch those.
+Refinement = 150
 
+# Output options for the Solver
+Graph = True
+Stl = False
+Dxf = False
+Temperature = False
+Write = False
+
+# Engine design choices
 P_combustion = 3.3 * 10 ** 6 #Pascal
 
 obj = CEA_Obj(oxName = "N2O", fuelName = "Ethanol", temperature_units = 'degK', pressure_units='bar')
@@ -22,4 +30,4 @@ mdot = 0.230 #kg/s
 
 L = 5.75 #theoretical throat radius in mm
 
-Shorten_Percentage = 0.78
+Shorten_Percentage = 0.78 #1 - Percentage to truncate nozzle by, best to have this be less than 1
