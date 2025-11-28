@@ -11,7 +11,9 @@ import scipy as sp
 from scipy.optimize import root_scalar
 import stlgenerator
 import TemperatureAnalysis as TA
+import time
 
+Efficiency = Param.Nozzle_Efficiency * Param.Combustion_Efficiency
 Refinement = Param.Refinement
 M_exit = Param.M_exit
 g = Param.g
@@ -118,38 +120,23 @@ def coords(k, n, dv, g, grid):
     y_kn = y_km1n + m1 * (x_kn - x_km1n)
     return x_kn, y_kn
 
+time0 = time.time()
+
 #basically the wall points are defined as kmax, 1 -> kmax - 1, 2, ... 2, nmax - 1.
 def solver(Graph, Write, Model, DXF, Temperature):
     grid.set_xy(1, 1, -1/(slopes(1, 1, dv, g)[1]), 0.0)
-
-    #for K in range(1, int(k_max) + 1):
-    #    grid.set_xy(K, 1, 0.0, L)
-
-    print(f"\n Max N, K = {n_max}")
-
-    print("\n Initial Kernel Starting \n")
-    print(f"Set point k={1}, n=1 to x={-1/(slopes(1, 1, dv, g)[0])}, y=0")
+    progress = 0
     for k1 in range(2, int(k_max) + 1):
         x_k1, y_k1 = coords_n1(k1, dv, g, grid)
         grid.set_xy(k1, 1, x_k1, y_k1)
-        print(f"Set point k={k1}, n=1 to x={x_k1}, y={y_k1}")
-    print("\n Initial Kernel Complete \n")
-
-    print("\n Beginning second layer \n")
 
     x_k1n2, y_k1n2 = coords_k1(2, dv, g, grid)
     grid.set_xy(1, 2, x_k1n2, y_k1n2)
-    print(f"Set point k={1}, n=2 to x={x_k1n2}, y={y_k1n2}")
     for k2 in range(2, k_max):
         x_k2, y_k2 = coords(k2, 2, dv, g, grid)
         grid.set_xy(k2, 2, x_k2, y_k2)
-        print(f"Set point k={k2}, n=2 to x={x_k2}, y={y_k2}")
-
-    print("\n Second Layer Complete \n")
 
     for N in range(3, n_max+1):
-
-        print(f"\n Beginning Layer No. {N}\n")
 
         x_k1nN, y_k1nN = coords_k1(N, dv, g, grid)
         grid.set_xy(1, N, x_k1nN, y_k1nN)
@@ -157,9 +144,8 @@ def solver(Graph, Write, Model, DXF, Temperature):
         for kN in range(2, k_max - N +2):
             x_kN, y_kN = coords(kN, N, dv, g, grid)
             grid.set_xy(kN, N, x_kN, y_kN)
-            print(f"Set point k={kN}, n={N} to x={x_kN}, y={y_kN}")
-        
-        print(f"\n Ending Layer No. {N}\n")
+            progress += 1
+        print(f" Progress: {int(progress / (n_max * k_max / 2) * 100)}% ", end='\r')
 
     wall_x = []
     wall_y = []
@@ -197,17 +183,15 @@ def solver(Graph, Write, Model, DXF, Temperature):
     for NI in range(1, n_max+1):
         x_line = []
         y_line = []
-
         for KI in range(1, int(k_max) - NI + 2):
             x_kn, y_kn = grid.get_xy(KI, NI)
             x_line.append(x_kn)
             y_line.append(y_kn)
         if 0 < GridField.get_x(grid, int(k_max) - NI + 1, NI) < wall_x[-1]:
-            ax.plot(x_line, y_line, color="#CA56FF", linestyle='--', alpha=0.5)
+            ax.plot(x_line, y_line, color="#AA5CF8", linestyle='--', alpha=0.5)
         elif GridField.get_x(grid, int(k_max) - NI + 1, NI) >= wall_x[-1]:  
             ax.plot(x_line, y_line, color="#68F100", linestyle='--', alpha=0.5)
             ks.append(int(k_max) - NI + 1)
-            print(f"K = {int(k_max) - NI + 1}, N = {NI}, x = {GridField.get_x(grid, int(k_max) - NI + 1, NI)}, y = {GridField.get_xy(grid, int(k_max) - NI + 1, NI)[1]}")
             ns.append(NI)
 
     x_calc = grid.get_x(1, n_max-1)
@@ -236,21 +220,30 @@ def solver(Graph, Write, Model, DXF, Temperature):
     wall_x = np.append(x_arc, wall_x)
     wall_y = np.append(y_arc, wall_y)
 
-    wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, x_arc, y_arc, 10)
+    wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, x_arc, y_arc, 30)
 
     wall_y_mirrored = -wall_y
 
     A_calc = (y_calc/1000)**2 * np.pi
     A_throat = (y_min/1000)**2 * np.pi
 
+    x_final_characteristic, a = GridField.get_xy(grid, 1, n_max-1)
+    index = np.argmin(np.abs(wall_x - x_final_characteristic))
+    y_final_characteristic = wall_y[index]
+
+    A_exit = (y_final_characteristic / 1000)**2 * np.pi
+    M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, g, 'supersonic')
+
     M_exit_true = IT.AreaRatioInverse(A_calc / A_throat, g, 'supersonic')
-    P_exit = IT.Pressure(P_combustion, g, M_exit_true)
-    T_exit = IT.Temperature(T_combustion, g, M_exit_true)
+    P_exit = IT.Pressure(P_combustion, g, M_exit_characteristic)
+    T_exit = IT.Temperature(T_combustion, g, M_exit_characteristic)
     A = IT.LocalSoS(g, Rs, T_exit)
-    A_exit = (wall_y[-1] / 1000)**2 * np.pi
-    Ve = A * M_exit_true
-    Thrust = mdot * Ve + (P_exit - 101325) * A_exit
+
+    Ve = A * M_exit_characteristic
+    Thrust = (mdot * Ve + (P_exit - 101325) * A_exit) * Efficiency
     Exit_Angle = np.rad2deg(np.arctan2(wall_y[-1] - wall_y[-2], wall_x[-1] - wall_x[-2]))
+
+    
 
     Temperature_profile = TA.LocalTemperature(wall_x, wall_y)
 
@@ -259,9 +252,7 @@ def solver(Graph, Write, Model, DXF, Temperature):
         M_list = []
         x_list = []
         K_exit = np.max(ks)
-        print(K_exit)
         N_exit = n_max + 1 - K_exit
-        print(f"N_exit = {N_exit}")
         CenterLine_x = np.array([])
         CenterLine_y = np.zeros(K_exit-1)
         Exit_x = np.ones(K_exit-1) * wall_x[-1]
@@ -326,8 +317,11 @@ def solver(Graph, Write, Model, DXF, Temperature):
         return Ve_avg, Thrust_mw
         
     Ve_mw, Thrust_mw = MassWeightedThrust()
+    time1 = time.time()
 
-    # --- OUTPUT SECTION ---
+    print(f"\nComputation Time: {time1 - time0:.2f} seconds\n")
+
+  # --- OUTPUT SECTION ---
 
     print("----------------------------------------------------")
     print(f"[bold][red]Output nozzle design specifications:[/bold][/red]")
@@ -335,7 +329,7 @@ def solver(Graph, Write, Model, DXF, Temperature):
     print(f"[dark_turquoise]Nozzle length: \t \t \t {wall_x[-1]:.2f} mm \t | Total length: \t \t {wall_x[-1] - wall_x[0]:.2f} mm")
     if Exit_Angle > 6: print(f"[red]Exit Angle: \t \t \t {Exit_Angle:.2f} Degrees[/red] \t [cyan3]| Exit radius: \t \t {wall_y[-1]:.2f} mm")
     else: print(f"[cyan3]Exit Angle: \t \t \t {Exit_Angle:.2f} Degrees \t | Exit radius: \t \t {wall_y[-1]:.2f} mm")
-    print(f"[dark_turquoise]True Throat Radius: \t \t {y_min:.2f} mm \t |")
+    print(f"[dark_turquoise]True Throat Radius: \t \t {y_min:.2f} mm \t | True Throat Diameter: \t {2 * y_min:.2f} mm")
 
     print("[dark_orange]___________________________________________________________________________________________")
 
@@ -350,9 +344,9 @@ def solver(Graph, Write, Model, DXF, Temperature):
     print("[light_green]___________________________________________________________________________________________")
 
     print(f"[green_yellow]Theoretical expansion ratio: \t {(wall_y[-1]**2 / L**2):.2f} \t \t | True expansion ratio: \t {(y_calc**2 / y_min**2):.2f}")
-    print(f"[light_green]Design Exit Mach: \t \t {M_exit} \t \t | Predicted Exit Mach: \t {M_exit_true:.2f}")
+    print(f"[light_green]Design Exit Mach: \t \t {M_exit} \t \t | Predicted Exit Mach: \t {M_exit_characteristic:.2f}")
     print(f"[green_yellow]Predicted Thrust: \t \t {Thrust:.0f} N \t \t |")
-    print(f"[light_green]> Thrust from Massflow: \t {mdot * Ve:.2f} N \t | > Thrust from Pressure: \t {(P_exit - 101325) * A_exit:.2f} N")
+    print(f"[light_green]> Thrust from Massflow: \t {Thrust - (P_exit - 101325) * A_exit:.2f} N \t | > Thrust from Pressure: \t {(P_exit - 101325) * A_exit:.2f} N")
 
     if P_exit < 0.25 * 101325: 
         print(f"[bold][red]Predicted Exit pressure: \t {P_exit:.0f} Pa")
@@ -366,7 +360,7 @@ def solver(Graph, Write, Model, DXF, Temperature):
     else: print(f"[green_yellow]Predicted Exit pressure: \t {P_exit:.0f} Pa \t |")
     print(f"[light_green]Specific Impulse: \t \t {Ve / 9.80665:.2f} s \t | [light_green]Specific Impulse (CEA): \t {Param.ISP_cea:.2f} s")
     print("[blue_violet]___________________________________________________________________________________________")
-    print(f"[blue_violet]Mass-Weighted Thrust: \t \t {Thrust_mw:.2f} N \t | [blue_violet]Mass-Weighted Isp: \t \t {Ve_mw / 9.80665:.2f} s")
+    print(f"[blue_violet]Mass-Weighted Thrust: \t \t {Thrust_mw * Efficiency:.2f} N \t | [blue_violet]Mass-Weighted Isp: \t \t {Ve_mw / 9.80665 * Efficiency:.2f} s")
 
     ax.plot(wall_x, wall_y, color = '#1E90FF', linewidth=2, label='Nozzle Wall Contour (MoC)')
     ax.plot(wall_x, wall_y_mirrored, color = '#1E90FF', linewidth=2)

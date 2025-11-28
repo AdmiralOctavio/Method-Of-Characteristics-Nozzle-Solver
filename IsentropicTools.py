@@ -39,18 +39,6 @@ def AreaRatio(M, g):
     return (1 / M) * term1**exponent
 
 def AreaRatioInverse(target_AR, gamma, flow_regime):
-    """
-    Calculates the Mach number (M) for a given target Area Ratio (A/A*) 
-    by numerically solving the transcendental equation, constrained by flow regime.
-    
-    Args:
-        target_AR (float): The desired Area Ratio (A_exit / A_throat). Must be > 1.
-        gamma (float): Specific heat ratio.
-        flow_regime (str): 'subsonic' or 'supersonic' to select the root.
-
-    Returns:
-        float: The calculated Mach number M.
-    """
     if target_AR < 1.0:
         raise ValueError("Area Ratio must be >= 1.0.")
 
@@ -83,3 +71,4 @@ def AreaRatioInverse(target_AR, gamma, flow_regime):
     except ValueError as e:
         print(f"Error finding root for AR={target_AR}. Check bounds. Details: {e}")
         return np.nan
+print(AreaRatioInverse(3.498, 1.14, 'supersonic'))
