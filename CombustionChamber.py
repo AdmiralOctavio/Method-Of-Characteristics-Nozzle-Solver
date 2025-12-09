@@ -1,13 +1,38 @@
 import numpy as np
 import Parameters as P
+import matplotlib.pyplot as plt
 
 Length = P.L_combustion
 Diameter = P.D_combustion
+L_throat = P.L
+alpha = np.deg2rad(P.Chamber_Slope)
 
-def CombustionChamber(wall_x, wall_y, x_arc, y_arc, R, n_fillet=20):
+def CombustionChamber(wall_x, wall_y, R1, R2):
+    n_fillet=200
+    wall_x = np.array(wall_x)
+    wall_y = np.array(wall_y)
+    wall_x = np.append(0, wall_x)
+    wall_y = np.append(L_throat, wall_y)
 
+
+    # First arc immediately before the nozzle
+    x_arc1 = np.linspace(-R1 * np.sin(alpha), wall_x[0], 100)
+    y_arc1 = -np.sqrt(R1**2 - x_arc1**2) + L_throat + R1
+
+    wall_x = np.append(x_arc1, wall_x)
+    wall_y =  np.append(y_arc1, wall_y)
+
+    # Second, straight arc between nozzle and first fillet
+    x_arc2 = np.linspace(-Diameter / 2 * np.tan(alpha), x_arc1[0], 100)
+    y_arc2 = np.linspace(Diameter / 2, y_arc1[0], 100)
+
+    # Third straight arc, just combustion chamber contour
+    x_arc3 = np.linspace(-Length - x_arc2[0], x_arc2[0], 100)
+    y_arc3 = np.linspace(Diameter / 2, y_arc2[0], 100)
+
+    
     def chamber_slope(y):
-        return -1 * (y - y_arc[0]) + x_arc[0]
+        return -np.tan(alpha) * (y - y_arc1[0]) + x_arc1[0]
 
     Upper_bound = Diameter / 2   
     
@@ -30,12 +55,12 @@ def CombustionChamber(wall_x, wall_y, x_arc, y_arc, R, n_fillet=20):
     n2 = n2_unit
 
     P1 = np.array([0.0, Upper_bound])
-    P1_shift = P1 + R * n1
+    P1_shift = P1 + R2 * n1
     
     c1p = -(a1 * P1_shift[0] + b1 * P1_shift[1])
 
     P2 = np.array([x_corner, y_corner])
-    P2_shift = P2 + R * n2
+    P2_shift = P2 + R2 * n2
     c2p = -(a2 * P2_shift[0] + b2 * P2_shift[1])
 
     A = np.array([[a1, b1],
@@ -73,13 +98,13 @@ def CombustionChamber(wall_x, wall_y, x_arc, y_arc, R, n_fillet=20):
     diff = angle_diff(ang_h, ang_s)
     theta = np.linspace(ang_h, ang_h + diff, n_fillet)
 
-    x_fillet = x_center + R * np.cos(theta)
-    y_fillet = y_center + R * np.sin(theta)
+    x_fillet = x_center + R2 * np.cos(theta)
+    y_fillet = y_center + R2 * np.sin(theta)
 
-    y_contract = np.linspace(tangent_s[1], y_arc[0], 2)
+    y_contract = np.linspace(tangent_s[1], wall_y[0], 2)
     x_contract = chamber_slope(y_contract)
 
-    chamber_x = np.linspace(x_fillet[0] - 100.0, x_fillet[0], 2)
+    chamber_x = np.linspace(x_fillet[0] - Length, x_fillet[0], 2)
     chamber_y = np.ones(2) * y_fillet[0]
 
     

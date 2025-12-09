@@ -36,7 +36,6 @@ Graph = Param.Graph
 Write = Param.Write
 Stl = Param.Stl
 Dxf = Param.Dxf
-Temperature = Param.Temperature
 
 fig, ax = plt.subplots(figsize=(12, 6))
 CUSTOM_GRAY_FIG = "#161619"
@@ -48,12 +47,19 @@ class GridField:
     def __init__(self, k_max, n_max):
         self.k_max = int(k_max)
         self.n_max = int(n_max)
+        self.M = np.ones((self.k_max, self.n_max))
         self.x = np.zeros((self.k_max, self.n_max))
         self.y = np.zeros((self.k_max, self.n_max))
 
     def set_xy(self, k, n, x_val, y_val):
         self.x[int(k)-1, int(n)-1] = x_val
         self.y[int(k)-1, int(n)-1] = y_val
+    
+    def set_M(self, k, n, M_val):
+        self.M[int(k)-1, int(n)-1] = M_val
+
+    def get_M(self, k, n):
+        return self.M[int(k)-1, int(n)-1]
 
     def get_xy(self, k, n):
         return self.x[int(k)-1, int(n)-1], self.y[int(k)-1, int(n)-1]
@@ -66,11 +72,9 @@ class GridField:
 
 grid = GridField(k_max, n_max)
 
-def phi_k(k, dv):
-    return (k - 1) * dv
+def phi_k(k, dv): return (k - 1) * dv
 
-def v_region(k, n, dv):
-    return 2 * dv * (n - 1) + (k - 1) * dv
+def v_region(k, n, dv): return  2 * dv * (n - 1) + (k - 1) * dv
 
 def slopes(k, n, dv, g):
     v_kn = v_region(k, n, dv)
@@ -87,7 +91,8 @@ def slopes(k, n, dv, g):
 
     m1 = np.tan((mu_kn + mu_km1np1)/2 + (Phi_k + Phi_km1)/2)
     m2 = -np.tan((mu_kn + mu_km1np1)/2 - (Phi_k + Phi_km1)/2)
-    if k == int(k_max-n+1): return m1, np.tan(Phi_k)
+    #print(f"\n Wall k: {k_max - n + 1}")
+    if k == int(k_max-n): return m1, np.tan(Phi_k)
     else: return m1, m2
 
 #I think this is actually the initial kernel lowk
@@ -121,37 +126,33 @@ def coords(k, n, dv, g, grid):
     return x_kn, y_kn
 
 time0 = time.time()
-
+print(n_max * k_max / 2)
 #basically the wall points are defined as kmax, 1 -> kmax - 1, 2, ... 2, nmax - 1.
 def solver(Graph, Write, Model, DXF, Temperature):
     grid.set_xy(1, 1, -1/(slopes(1, 1, dv, g)[1]), 0.0)
     progress = 0
-    for k1 in range(2, int(k_max) + 1):
+    for k1 in range(2, int(k_max)):
         x_k1, y_k1 = coords_n1(k1, dv, g, grid)
         grid.set_xy(k1, 1, x_k1, y_k1)
-
-    x_k1n2, y_k1n2 = coords_k1(2, dv, g, grid)
-    grid.set_xy(1, 2, x_k1n2, y_k1n2)
-    for k2 in range(2, k_max):
-        x_k2, y_k2 = coords(k2, 2, dv, g, grid)
-        grid.set_xy(k2, 2, x_k2, y_k2)
-
-    for N in range(3, n_max+1):
-
+        #print(f"K: {k1}, N = 1, x: {x_k1}, y: {y_k1}")
+    for N in range(2, n_max):
         x_k1nN, y_k1nN = coords_k1(N, dv, g, grid)
         grid.set_xy(1, N, x_k1nN, y_k1nN)
+        #print(f"K: 1, N = {N}, x: {x_k1nN}, y: {y_k1nN}")
 
         for kN in range(2, k_max - N +2):
             x_kN, y_kN = coords(kN, N, dv, g, grid)
             grid.set_xy(kN, N, x_kN, y_kN)
+            #print(f"K: {kN}, N = {N}, x: {x_kN}, y: {y_kN}")
             progress += 1
+        
         print(f" Progress: {int(progress / (n_max * k_max / 2) * 100)}% ", end='\r')
 
     wall_x = []
     wall_y = []
 
     #Prints the characteristics of Family II
-    for NII in range(1, int(n_max) + 1):
+    for NII in range(1, int(n_max)):
 
         x_line = []
         y_line = []
@@ -164,7 +165,7 @@ def solver(Graph, Write, Model, DXF, Temperature):
             x_line.append(x_NN)
             y_line.append(y_NN)
 
-            if NII == n_max and NII_2 != n_max:
+            if NII == n_max-1 and NII_2 != n_max-1:
                 wall_x.append(x_NN)
                 wall_y.append(y_NN)
                 
@@ -176,20 +177,21 @@ def solver(Graph, Write, Model, DXF, Temperature):
     wall_y_truncated = wall_y[split_index:]
     wall_x = wall_x[:split_index]
     wall_y = wall_y[:split_index]
+    
 
     #Prints the characteristics of Family I
     ks = []
     ns = []
-    for NI in range(1, n_max+1):
+    for NI in range(1, n_max-1):
         x_line = []
         y_line = []
-        for KI in range(1, int(k_max) - NI + 2):
+        for KI in range(1, int(k_max) - NI + 1):
             x_kn, y_kn = grid.get_xy(KI, NI)
             x_line.append(x_kn)
             y_line.append(y_kn)
-        if 0 < GridField.get_x(grid, int(k_max) - NI + 1, NI) < wall_x[-1]:
+        if 0 < GridField.get_x(grid, int(k_max) - NI, NI) < wall_x[-1]:
             ax.plot(x_line, y_line, color="#AA5CF8", linestyle='--', alpha=0.5)
-        elif GridField.get_x(grid, int(k_max) - NI + 1, NI) >= wall_x[-1]:  
+        elif GridField.get_x(grid, int(k_max) - NI, NI) >= wall_x[-1]:  
             ax.plot(x_line, y_line, color="#68F100", linestyle='--', alpha=0.5)
             ks.append(int(k_max) - NI + 1)
             ns.append(NI)
@@ -216,14 +218,9 @@ def solver(Graph, Write, Model, DXF, Temperature):
         #y_poly = [L]
 
         return x_poly, y_poly
-
-    x_arc, y_arc = parabolatest()
-    y_min = np.min(y_arc)
-
-    wall_x = np.append(x_arc, wall_x)
-    wall_y = np.append(y_arc, wall_y)
-
-    wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, x_arc, y_arc, 30)
+    wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, 9.38, 27.32)
+    wall_y_mirrored = -1 * wall_y
+    y_min = np.min(wall_y)
 
     wall_y_mirrored = -wall_y
 
@@ -235,9 +232,12 @@ def solver(Graph, Write, Model, DXF, Temperature):
     y_final_characteristic = wall_y[index]
 
     A_exit = (y_final_characteristic / 1000)**2 * np.pi
-    M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, g, 'supersonic')
+    #M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, g, 'supersonic')
+    M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, g, 'supersonic')
 
     M_exit_true = IT.AreaRatioInverse(A_calc / A_throat, g, 'supersonic')
+
+    M_exit_true = M_exit
     P_exit = IT.Pressure(P_combustion, g, M_exit_characteristic)
     T_exit = IT.Temperature(T_combustion, g, M_exit_characteristic)
     A = IT.LocalSoS(g, Rs, T_exit)
@@ -246,9 +246,23 @@ def solver(Graph, Write, Model, DXF, Temperature):
     Thrust = (mdot * Ve + (P_exit - 101325) * A_exit) * Efficiency
     Exit_Angle = np.rad2deg(np.arctan2(wall_y[-1] - wall_y[-2], wall_x[-1] - wall_x[-2]))
 
-    
+    # Utilising theoretical throat area, A*
+    A_test_throat = mdot / (P_combustion / np.sqrt(T_combustion) * np.sqrt(g / Rs) * (2 / (g + 1)) ** ( (g + 1) / (2 * (g - 1)))) 
+    #A_test_ratio = (wall_y[-1]**2 * np.pi) / A_test_throat
+    A_test_ratio = (A_calc / A_test_throat)
+    Mach_test = IT.AreaRatioInverse(A_test_ratio, g, 'supersonic')
 
-    Temperature_profile = TA.LocalTemperature(wall_x, wall_y)
+    T_exit_test = IT.Temperature(T_combustion, g, Mach_test)
+    print(T_exit)
+    P_exit_test = IT.Pressure(P_combustion, g, Mach_test)
+    print(P_exit)
+    A_test = IT.LocalSoS(g, Rs, T_exit_test)
+    print(A)
+    Ve_test = A_test * Mach_test
+    print(mdot * Ve_test * Efficiency)
+    Thrust_test = (mdot * Ve_test + (P_exit_test - 101325) * A_exit) * Efficiency
+
+    #Temperature_profile = TA.LocalTemperature(wall_x, wall_y)
 
 
     def ExitMachDistribution(wall_x, wall_y):
@@ -290,13 +304,13 @@ def solver(Graph, Write, Model, DXF, Temperature):
         return np.array(M_list), Exit_y
 
     M_distribution, Exit_y = ExitMachDistribution(wall_x, wall_y)
-    M_distribution = np.append(M_distribution, M_exit_true)
-    Exit_y = np.append(Exit_y, 0)
+    M_distribution = np.delete(M_distribution, -1)
+    Exit_y = np.delete(Exit_y, -1)
 
     def MassWeightedThrust():
-        coeffs = np.polyfit(Exit_y, M_distribution, 2)
-        a, b, c = coeffs
-        def M(y): return a * y**2 + b*y + c
+        coeffs = np.polyfit(Exit_y, M_distribution, 1)
+        a, b = coeffs
+        def M(y): return a * y + b
 
         def Ve_local(y):
             return M(y) * IT.LocalSoS(g, Rs, IT.Temperature(T_combustion, g, M(y)))
@@ -364,6 +378,12 @@ def solver(Graph, Write, Model, DXF, Temperature):
     print(f"[light_green]Specific Impulse: \t \t {Ve / 9.80665:.2f} s \t | [light_green]Specific Impulse (CEA): \t {Param.ISP_cea:.2f} s")
     print("[blue_violet]___________________________________________________________________________________________")
     print(f"[blue_violet]Mass-Weighted Thrust: \t \t {Thrust_mw * Efficiency:.2f} N \t | [blue_violet]Mass-Weighted Isp: \t \t {Ve_mw / 9.80665 * Efficiency:.2f} s")
+    #print(f"ve = {2 * (n_max-1) * dv}, Me = {IT.PMinv(2 * (n_max-1) * dv, g)}")
+
+    
+    print(f"[bold][purple]Test Area ratio: \t \t {A_test_ratio:.2f} \t \t | Test Mach: \t \t \t {Mach_test:.2f}[/bold][/purple]")
+    print(f"[blue_violet]Test Thrust: \t \t \t {Thrust_test:.2f} N \t |")
+    print(f"[bold][purple]> From Massflow: \t \t {mdot * Ve_test * Efficiency:.2f} N \t | > From Pressure: \t \t {Thrust_test - mdot * Ve_test * Efficiency:.2f} N\n")
 
     ax.plot(wall_x, wall_y, color = '#1E90FF', linewidth=2, label='Nozzle Wall Contour (MoC)')
     ax.plot(wall_x, wall_y_mirrored, color = '#1E90FF', linewidth=2)
@@ -418,7 +438,7 @@ def solver(Graph, Write, Model, DXF, Temperature):
         stlgenerator.create_stl(wall_x, wall_y, M_exit_true)
     
     if DXF == True:
-        stlgenerator.create_dxf(wall_x, wall_y, M_exit_true)
+        stlgenerator.create_dxf(wall_x, wall_y_mirrored, M_exit_true)
     
     
-solver(Graph, Write, Stl, Dxf, Temperature)
+solver(Graph, Write, Stl, Dxf, False)

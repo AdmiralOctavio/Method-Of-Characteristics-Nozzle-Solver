@@ -1,11 +1,11 @@
 from rocketcea.cea_obj_w_units import CEA_Obj
 
-Refinement = 200
+Refinement = 100
 
 # Output options for the Solver
-Graph = True
+Graph = False
 Stl = False
-Dxf = True
+Dxf = False
 Temperature = False
 Write = False
 
@@ -15,10 +15,10 @@ P_combustion = 3.3 * 10 ** 6 #Pascal
 obj = CEA_Obj(oxName = "N2O", fuelName = "Ethanol", temperature_units = 'degK', pressure_units='bar')
 configuration = obj.get_IvacCstrTc_ChmMwGam(Pc = P_combustion / 10 ** 5, MR = 5.13, eps = 5)
 
-L_combustion = 100 #mm
+L_combustion = 75 #mm
 D_combustion = 50 #mm
 
-M_exit = 2.2
+M_exit = 2.18
 g = float(configuration[4])
 T_combustion = float(configuration[2])
 ISP_cea = configuration[0]
@@ -26,10 +26,11 @@ ISP_cea = configuration[0]
 R = 8.314
 Mw = 0.0265 #kg/mol
 Rs = R / Mw
-mdot = 0.274 #kg/s
+mdot = 0.3065 #kg/s
 
-L = 5.7 #theoretical throat radius in mm
+L = 6.25 #theoretical throat radius in mm
+Chamber_Slope = 45 
 
-Shorten_Percentage = 0.85 #1 - Percentage to truncate nozzle by, best to have this be less than 1
+Shorten_Percentage = 0.75 #1 - Percentage to truncate nozzle by, best to have this be less than 1
 Nozzle_Efficiency = 0.985 # Estimate
-Combustion_Efficiency = 0.95
+Combustion_Efficiency = 0.85

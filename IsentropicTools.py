@@ -71,4 +71,27 @@ def AreaRatioInverse(target_AR, gamma, flow_regime):
     except ValueError as e:
         print(f"Error finding root for AR={target_AR}. Check bounds. Details: {e}")
         return np.nan
-print(AreaRatioInverse(3.498, 1.14, 'supersonic'))
+AT = Temperature(3200,1.14,2)
+BT = Temperature(3200,1.14,2.4)
+print(AT)
+print(BT)
+
+AA = LocalSoS(1.14, 300, AT)
+BA = LocalSoS(1.14, 300, BT)
+print(AA)
+print(BA)
+
+AP = Pressure(3300000,1.14,2)
+BP = Pressure(3300000,1.14,2.4)
+print(AP)
+print(BP)
+
+Av = AA* 2
+Bv = BA * 2.4
+print(Av)
+print(Bv)
+
+At = Av * 0.3 + (AP - 100000) * 0.0001
+Bt = Bv * 0.3 + (BP - 100000) * 0.0001
+print(At)
+print(Bt)
