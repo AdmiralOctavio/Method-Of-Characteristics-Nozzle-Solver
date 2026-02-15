@@ -14,6 +14,7 @@ Due to the iterative nature of the Method of Characteristics, and physical limit
 
 ### Option A (Recommended):
 1 - Install Miniconda
+
 2 - Open Anaconda Prompt, and cd into the directory where you've installed the script
 ```bash
 cd C:\Users\XXXX\Documents\GitHub\MoC-Nozzle-Solver
@@ -38,6 +39,7 @@ run-nozzle
 ### Option B:
 You can also run this using standard python (pip only), but it can be a bit more annoying.
 You must manually install the fortran compiler (I think its like MinGW-w64 or sm, with gfortran selected)
+
 1 - Set up virtual environment using 
 ```bash
 python -m venv venv.\venv\Scripts\activate
