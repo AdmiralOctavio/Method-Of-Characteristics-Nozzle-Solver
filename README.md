@@ -11,6 +11,7 @@ Due to the iterative nature of the Method of Characteristics, and physical limit
 
 
 This software requires the gfortran compiler, for using rocketCEA. There are two main ways to get this working quickly and smoothly.
+
 Option A (Recommended):
 1 - Install Miniconda
 2 - Open Anaconda Prompt, and cd into the directory where you've installed the script
