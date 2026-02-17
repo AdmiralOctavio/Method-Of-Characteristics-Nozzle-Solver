@@ -9,11 +9,22 @@ diagnostic = False
 Refinement = 100
 
 # Output options for the Solver
-Graph = True
+Graph2d = False
+Graph3d = not Graph2d # Do not change
 Stl = False
 Dxf = True
 Temperature = False
 Write = True
+
+# Purely for aesthetic purposes. Affects output graphs.
+Materials = {
+    "Copper": "#db8d5c",
+    "Steel": "#525252",
+    "Inconel": "#958b87",
+    "Titanium": "#B4B1A7",
+    "Dodger Blue": "#1E90FF",
+}
+Material = "Dodger Blue"
 
 # Engine design choices
 P_combustion = 3.4 * 10**6  # Pascal
@@ -57,7 +68,7 @@ Nozzle_Efficiency = 0.985  # Lower bound TIC estimate.
 Combustion_Efficiency = 0.85  # Also estimate.
 
 # Diagonist to ensure CEA isn't being weird.
-if diagnostic == True:
+if diagnostic:
     Oxidisers = ["N2O", "N2O", "N2O", "N2O"]
     fuels = [ethanol80, ethanol100, ethanol80, ethanol100]
     combustion_pressures = [

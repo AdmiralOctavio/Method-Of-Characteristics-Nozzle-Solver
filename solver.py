@@ -3,13 +3,13 @@
 import IsentropicTools as IT
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from rich import print
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
-from rich.markup import escape
+import CombustionChamber as CC
+import Parameters as Param
+import time
 
 
 def m(s):
@@ -18,17 +18,6 @@ def m(s):
 
 def divider(color):
     return [Rule(style=color)]
-
-
-import CombustionChamber as CC
-import Parameters as Param
-from scipy.interpolate import interp1d
-from scipy.interpolate import CubicHermiteSpline
-from scipy.integrate import quad
-import scipy as sp
-from scipy.optimize import root_scalar
-import TemperatureAnalysis as TA
-import time
 
 # Main solver file for the script. Nothing in here needs to be modified by the user
 # This script contains all the sub-function definitions (such as local slopes)
@@ -55,13 +44,10 @@ L = Param.L
 L_combustion = Param.L_combustion
 D_combustion = Param.D_combustion
 SP = Param.Shorten_Percentage
-Graph = Param.Graph
-
-fig, ax = plt.subplots(figsize=(12, 6))
-CUSTOM_GRAY_FIG = "#161619"
-CUSTOM_GRAY_AXES = "#2C2B30"
-fig.set_facecolor(CUSTOM_GRAY_FIG)
-ax.set_facecolor(CUSTOM_GRAY_AXES)
+Graph2d = Param.Graph2d
+Graph3d = Param.Graph3d
+Materials = Param.Materials
+Material = Param.Material
 
 
 class GridField:
@@ -163,8 +149,14 @@ print(n_max * k_max / 2)
 
 
 # basically the wall points are defined as kmax, 1 -> kmax - 1, 2, ... 2, nmax - 1.
-def solver(Graph):
-    grid.set_xy(1, 1, -1 / (slopes(1, 1, dv, g)[1]), 0.0)
+def solver(Graph2d, Graph3d):
+
+    if Graph2d: fig, ax = plt.subplots(figsize=(12, 6))
+    CUSTOM_GRAY_FIG = "#161619"
+    CUSTOM_GRAY_AXES = "#2C2B30"
+    
+
+    grid.set_xy(1, 1, -L / (slopes(1, 1, dv, g)[1]), 0.0)
     progress = 0
     for k1 in range(2, int(k_max)):
         x_k1, y_k1 = coords_n1(k1, dv, g, grid)
@@ -188,7 +180,6 @@ def solver(Graph):
 
     # Prints the characteristics of Family II
     for NII in range(1, int(n_max)):
-
         x_line = []
         y_line = []
 
@@ -204,11 +195,9 @@ def solver(Graph):
                 wall_x.append(x_NN)
                 wall_y.append(y_NN)
 
-        ax.plot(x_line, y_line, color="#D02E2E", linestyle="--", alpha=0.5)
+        if Graph2d: ax.plot(x_line, y_line, color="#D02E2E", linestyle="--", alpha=0.5)
 
     split_index = int(len(wall_x) * SP)
-    wall_x_truncated = wall_x[split_index:]
-    wall_y_truncated = wall_y[split_index:]
     wall_x = wall_x[:split_index]
     wall_y = wall_y[:split_index]
 
@@ -223,21 +212,13 @@ def solver(Graph):
             x_line.append(x_kn)
             y_line.append(y_kn)
         if 0 < GridField.get_x(grid, int(k_max) - NI, NI) < wall_x[-1]:
-            ax.plot(x_line, y_line, color="#AA5CF8", linestyle="--", alpha=0.5)
+            if Graph2d: ax.plot(x_line, y_line, color="#AA5CF8", linestyle="--", alpha=0.5)
         elif GridField.get_x(grid, int(k_max) - NI, NI) >= wall_x[-1]:
-            ax.plot(x_line, y_line, color="#68F100", linestyle="--", alpha=0.5)
+            if Graph2d: ax.plot(x_line, y_line, color="#68F100", linestyle="--", alpha=0.5)
             ks.append(int(k_max) - NI + 1)
             ns.append(NI)
 
-    x_calc = grid.get_x(1, n_max - 1)
-
     y_calc = wall_y[-1]
-
-    Radius = wall_x[0] / np.sin(phi_k(k_max, dv))
-    x_arc = np.linspace(-Radius * np.sqrt(2) / 2, wall_x[0], 20)
-    y_arc = (
-        -np.sqrt(Radius**2 - x_arc**2) + wall_y[0] + Radius * np.cos(phi_k(k_max, dv))
-    )
 
     wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, 9.38, 47.32)
     wall_y_mirrored = -1 * wall_y
@@ -256,9 +237,6 @@ def solver(Graph):
     # M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, g, 'supersonic')
     M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, g, "supersonic")
 
-    M_exit_true = IT.AreaRatioInverse(A_calc / A_throat, g, "supersonic")
-
-    M_exit_true = M_exit
     P_exit = IT.Pressure(P_combustion, g, M_exit_characteristic)
     T_exit = IT.Temperature(T_combustion, g, M_exit_characteristic)
     A = IT.LocalSoS(g, Rs, T_exit)
@@ -274,39 +252,104 @@ def solver(Graph):
     print(f"\nComputation Time: {time1 - time0:.2f} seconds\n")
 
     # Plotting
+    if Graph2d:
 
-    ax.plot(
-        wall_x, wall_y, color="#1E90FF", linewidth=2, label="Nozzle Wall Contour (MoC)"
-    )
-    ax.plot(wall_x, wall_y_mirrored, color="#1E90FF", linewidth=2)
+        fig.set_facecolor(CUSTOM_GRAY_FIG)
+        ax.set_facecolor(CUSTOM_GRAY_AXES)
 
-    ax.set_title("Nozzle Wall Contour and Characteristics", color="white", fontsize=16)
-    ax.set_xlabel("x (mm)", color="white")
-    ax.set_ylabel("y (mm)", color="white")
-    ax.axis("equal")
-    ax.grid(True, linestyle="--", alpha=0.3)
-    ax.legend(
-        loc="lower right",
-        frameon=True,
-        facecolor="black",
-        edgecolor="white",
-        labelcolor="white",
-    )
+        ax.plot(
+            wall_x, wall_y, color="#1E90FF", linewidth=2, label="Nozzle Wall Contour (MoC)"
+        )
+        ax.plot(wall_x, wall_y_mirrored, color="#1E90FF", linewidth=2)
 
-    ax.tick_params(axis="x", colors="white")
-    ax.tick_params(axis="y", colors="white")
-    for spine in ax.spines.values():
-        spine.set_color("white")
-    ax.legend(
-        loc="lower right",
-        frameon=True,
-        facecolor=CUSTOM_GRAY_AXES,
-        edgecolor="white",
-        labelcolor="white",
-    )
+        ax.set_title("Nozzle Wall Contour and Characteristics", color="white", fontsize=16)
+        ax.set_xlabel("x (mm)", color="white")
+        ax.set_ylabel("y (mm)", color="white")
+        ax.axis("equal")
+        ax.grid(True, linestyle="--", alpha=0.3)
+        ax.legend(
+            loc="lower right",
+            frameon=True,
+            facecolor="black",
+            edgecolor="white",
+            labelcolor="white",
+        )
 
-    if Graph == True:
+        ax.tick_params(axis="x", colors="white")
+        ax.tick_params(axis="y", colors="white")
+        for spine in ax.spines.values():
+            spine.set_color("white")
+        ax.legend(
+            loc="lower right",
+            frameon=True,
+            facecolor=CUSTOM_GRAY_AXES,
+            edgecolor="white",
+            labelcolor="white",
+        )
         plt.show()
+    
+    if Graph3d:
+
+        fig = plt.figure(figsize = (16,8), facecolor=CUSTOM_GRAY_FIG)
+        ax = fig.add_subplot(111, projection = '3d')
+
+        fig.set_facecolor(CUSTOM_GRAY_FIG)
+        ax.set_facecolor(CUSTOM_GRAY_AXES)
+
+        theta = np.linspace(0, 2*np.pi, 100)
+        theta_grid, wall_x_grid = np.meshgrid(theta, wall_x)
+        _, wall_y_grid = np.meshgrid(theta, wall_y)
+
+        X = wall_x_grid
+        Y = wall_y_grid * np.cos(theta_grid)
+        Z = wall_y_grid * np.sin(theta_grid)
+
+        def update_plot(high_res = True):
+            ax.clear()
+            ax.set_facecolor(CUSTOM_GRAY_FIG)
+
+            colour = Materials[Material]
+
+            if high_res:
+                ax.plot_surface(X, Y, Z, color = colour, alpha = 0.7, linewidth = 0, antialiased=True, rstride = 1, cstride = 1)
+            else:
+                ax.plot_surface(X, Y, Z, color = colour, alpha = 0.7, linewidth = 0, antialiased=False, rstride = 4, cstride = 4)
+
+        
+        ax.xaxis.pane.fill = False
+        ax.yaxis.pane.fill = False
+        ax.zaxis.pane.fill = False
+
+        ax.set_xlabel('x (mm)', color='white')
+        ax.set_ylabel('y (mm)', color='white')
+        ax.set_zlabel('z (mm)', color='white')
+        ax.tick_params(colors='white')
+
+        x_range = wall_x.max() - wall_x.min()
+        y_range = Y.max() - Y.min()
+        z_range = Z.max() - Z.min()
+
+        plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
+
+        ax.set_xlim(wall_x.min(), wall_x.max())
+        ax.set_ylim(Y.min(), Y.max())
+        ax.set_zlim(Z.min(), Z.max())
+
+        ax.set_box_aspect((x_range, y_range, z_range))
+
+        def on_click(event):
+            if event.inaxes == ax:
+                update_plot(high_res=False)
+        def on_release(event):
+            update_plot(high_res=True)
+
+        fig.canvas.mpl_connect('button_press_event', on_click)
+        fig.canvas.mpl_connect('button_release_event', on_release)
+
+        update_plot(high_res=True)
+
+        plt.show()
+
 
     return (
         wall_x,

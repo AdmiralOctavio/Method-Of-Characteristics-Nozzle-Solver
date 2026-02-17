@@ -1,7 +1,7 @@
 # MoC Nozzle Solver
-Liquid Rocket Nozzle solver utilising the method of characteristics.
+2D Liquid Rocket Nozzle solver utilising the Method of Characteristics.
 
-Modify relevant parameters in Parameters.py (such as desired exit mach, theoretical throat radius, etc...).
+Modify relevant parameters in Parameters.py (such as desired exit mach, theoretical throat radius, etc...). Note that since this is a two dimensional solver, and not three dimensional, there will be a mismatch between the design exit mach in parameters, and the predicted exit mach. I believe this is due to the fact that the 2D solver approximates the contour as a continuous plane, and not as a cylindrical structure. Nonetheless, this tool has been verified by comparing with contours produced with RPA-4's TIC Nozzle generator, which utilises the 3D MoC method. There is a slight deviation in geometry, but generally within 1%. Why use this over RPA-4? This is free :).
 
 Run main.py for tabular and graphical output. 
 

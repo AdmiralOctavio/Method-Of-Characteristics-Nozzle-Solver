@@ -1,10 +1,13 @@
-from rich import print
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
-from rich.markup import escape
+import Parameters as Param
+import numpy as np
+import stlgenerator
+import os
+import solver
 
 
 def m(s):
@@ -15,24 +18,21 @@ def divider(color):
     return [Rule(style=color)]
 
 
-import Parameters as Param
-import matplotlib.pyplot as plt
-import numpy as np
-import stlgenerator
-import os
+
+
 
 folder_name = "Output_Files"
 if not os.path.exists(folder_name):
     os.makedirs(folder_name)
 
-Graph = Param.Graph
+Graph2d = Param.Graph2d
+Graph3d = Param.Graph3d
 Write = Param.Write
 Stl = Param.Stl
 Dxf = Param.Dxf
 
 # Output file. Just outputs a table with the important design parameters, along with activating the write functions if required.
 
-import solver
 
 
 def outputTable():
@@ -57,7 +57,7 @@ def outputTable():
         y_calc,
         L,
         wall_y_mirrored,
-    ) = solver.solver(Graph)
+    ) = solver.solver(Graph2d, Graph3d)
 
     table = Table(
         show_header=False,
@@ -206,7 +206,7 @@ def outputTable():
 
     console.print(panel)
 
-    if Write == True:
+    if Write:
         combined = np.stack((wall_x / 1000, wall_y / 1000), axis=1)
         filename = f"Nozzle_Contour_M={M_exit:.2f}.csv"
         filepath = os.path.join(folder_name, filename)
@@ -218,8 +218,8 @@ def outputTable():
             comments="",
         )
 
-    if Stl == True:
+    if Stl:
         stlgenerator.create_stl(wall_x, wall_y, M_exit)
 
-    if Dxf == True:
+    if Dxf:
         stlgenerator.create_dxf(wall_x / 1000, wall_y_mirrored / 1000, M_exit)
