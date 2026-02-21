@@ -2,20 +2,22 @@ from rocketcea.cea_obj_w_units import CEA_Obj
 from rocketcea.blends import newFuelBlend
 from rich import print
 
+# Everything marked by "!!!" can (and should) be changed for your design.
+# If it doesn't have this mark, you can still change it, but I can't guarantee it'll work.
 
 diagnostic = False
 
 # Mesh refinement factor. Higher = better, but slower. Default = 100.
-Refinement = 100
+Refinement = 100                                # !!!
 
 # Output options for the Solver
-Graph2d = True
-Graph3d = False # Do not change
-Graph3d_Fancy = False # Fancy plotting using pyvista
-Stl = False
+Graph2d = True                                  # !!!
+Graph3d = False                                 # !!!
+Graph3d_Fancy = False                           # !!! Fancy plotting using pyvista 
+Stl = False                                     # !!!
 Dxf = True
-Temperature = False
-Write = True
+Temperature = False                             # !!!
+Write = True                                    # !!!
 
 # Purely for aesthetic purposes. Affects output graphs.
 Materials = {
@@ -28,8 +30,8 @@ Materials = {
 Material = "Copper"
 
 # Engine design choices
-P_combustion = 3.4 * 10**6  # Pascal
-Oxidiser_Fuel_Ratio = 5.13
+P_combustion = 3.4 * 10**6                      # !!! Pascal
+Oxidiser_Fuel_Ratio = 5.13                      # !!!
 
 # Fuel Definitions
 ethanol80 = newFuelBlend(["Ethanol", "H2O"], [80, 20])
@@ -37,36 +39,32 @@ ethanol90 = newFuelBlend(["Ethanol", "H2O"], [90, 10])
 ethanol100 = newFuelBlend(["Ethanol", "H2O"], [100, 0])
 
 # CEA Object for specific config
-obj = CEA_Obj(
-    oxName="N2O", fuelName=ethanol100, temperature_units="degK", pressure_units="bar"
-)
-configuration = obj.get_IvacCstrTc_ChmMwGam(
-    Pc=P_combustion / 10**5, MR=Oxidiser_Fuel_Ratio, eps=5
-)
+obj = CEA_Obj(oxName="N2O", fuelName=ethanol100, temperature_units="degK", pressure_units="bar") # !!!
+configuration = obj.get_IvacCstrTc_ChmMwGam(Pc=P_combustion / 10**5, MR=Oxidiser_Fuel_Ratio, eps=5)
 
 # Combustion Chamber dimensions
-L_combustion = 93.02  # mm
-Contraction_ratio = 16
+L_combustion = 83.02                            # !!!
+Contraction_ratio = 16                          # !!!
 
 # Design exit mach + other parameters
-M_exit = 2.2
+M_exit = 2.2                                    # !!!
 g = float(configuration[4])
 T_combustion = float(configuration[2])
 ISP_cea = configuration[0]
 
 R = 8.314
-Mw = configuration[3] / 1000  # kg/mol
+Mw = configuration[3] / 1000                    # kg/mol
 Rs = R / Mw
-mdot = 0.3067  # kg/s
+mdot = 0.3067                                   # !!! kg/s
 
-L = 12.32 / 2  # Theoretical throat radius in mm
-Chamber_Slope = 45  # Please don't change this
+L = 12.32 / 2                                   # !!!  Theoretical throat radius in mm
+Chamber_Slope = 45                              # !!!
+R1 = 10                                         # !!!
+R2 = 50                                         # !!!
 
-Shorten_Percentage = (
-    0.75  # 1 - Percentage to truncate nozzle by, best to have this be less than 1
-)
-Nozzle_Efficiency = 0.985  # Lower bound TIC estimate.
-Combustion_Efficiency = 0.85  # Also estimate.
+Shorten_Percentage = 0.75                       # !!! 1 - Percentage to truncate nozzle by, best to have this be less than 1
+Nozzle_Efficiency = 0.985                       # !!! Lower bound TIC estimate. 
+Combustion_Efficiency = 0.85                    # !!! Also estimate.
 
 # Diagonist to ensure CEA isn't being weird.
 if diagnostic:

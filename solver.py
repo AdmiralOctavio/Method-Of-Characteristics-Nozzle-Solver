@@ -50,6 +50,8 @@ Graph2d = Param.Graph2d
 Graph3d = Param.Graph3d
 Materials = Param.Materials
 Material = Param.Material
+R1 = Param.R1
+R2 = Param.R2
 
 
 class GridField:
@@ -222,7 +224,7 @@ def solver(Graph2d, Graph3d, Graph3d_Fancy):
 
     y_calc = wall_y[-1]
 
-    wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, 15, 50)
+    wall_x, wall_y = CC.CombustionChamber(wall_x, wall_y, R1, R2)
     wall_y_mirrored = -1 * wall_y
     y_min = np.min(wall_y)
 
