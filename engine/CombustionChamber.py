@@ -1,12 +1,12 @@
 import numpy as np
-import Parameters as P
+import engine.Parameters as P
 
-Length = P.L_combustion
-alpha = np.deg2rad(P.Chamber_Slope)
+
 
 
 def CombustionChamber(wall_x, wall_y, R1, R2, L_throat):
-
+    Length = P.L_combustion
+    alpha = np.deg2rad(P.Chamber_Slope)
     Rt = L_throat 
     Contraction_Ratio = P.Contraction_ratio
     R_inlet = Rt * np.sqrt(Contraction_Ratio) 

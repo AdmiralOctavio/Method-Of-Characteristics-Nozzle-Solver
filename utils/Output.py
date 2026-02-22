@@ -3,11 +3,11 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from rich.rule import Rule
-import Parameters as Param
+import engine.Parameters as Param
 import numpy as np
-import stlgenerator
+import utils.stlgenerator as stlgenerator
 import os
-import solver
+import engine.solver as solver
 
 
 def m(s):
@@ -58,7 +58,8 @@ def outputTable(R, mdot, mach):
         y_calc,
         L,
         wall_y_mirrored,
-        mdot
+        mdot,
+        fig
     ) = solver.main(mdot, R, mach)
 
     table = Table(
@@ -229,3 +230,30 @@ def outputTable(R, mdot, mach):
 
     if Dxf:
         stlgenerator.create_dxf(wall_x / 1000, wall_y_mirrored / 1000, M_exit)
+
+    return {
+        "wall_x": wall_x,
+        "wall_y": wall_y,
+        "Exit_Angle": Exit_Angle,
+        "y_min": y_min,
+        "T_comb": T_combustion,
+        "g": g,
+        "P_comb": P_combustion,
+        "M_opt": M_optimal,
+        "AR_opt": AreaRatio,
+        "M_exit_design": M_exit,
+        "M_exit_predicted": M_exit_characteristic,
+        "Thrust_total": Thrust,
+        "Thrust_momentum": mdot * Ve,
+        "Thrust_pressure": (P_exit - 101325) * A_exit,
+        "P_exit": P_exit,
+        "Ve": Ve,
+        "Isp_cea": ISP_cea,
+        "Isp_design": Ve / 9.80665,
+        "mdot": mdot,
+        "AR_theoretical": (wall_y[-1]**2 / L**2),
+        "AR_true": (y_calc**2 / y_min**2),
+        "fig": fig,
+        "total_length": wall_x[-1] - wall_x[0],
+        "exit_radius": wall_y[-1]
+    }

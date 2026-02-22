@@ -1,6 +1,6 @@
 # Imports
 
-import IsentropicTools as IT
+import engine.IsentropicTools as IT
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -10,8 +10,8 @@ import pyvista as pv
 from rich import print
 from rich.text import Text
 from rich.rule import Rule
-import CombustionChamber as CC
-import Parameters as Param
+import engine.CombustionChamber as CC
+import engine.Parameters as Param
 import time
 
 def main(mdot, L, mach):
@@ -286,7 +286,7 @@ def main(mdot, L, mach):
                 edgecolor="white",
                 labelcolor="white",
             )
-            plt.show()
+            #plt.show()
         
         if Graph3d_Fancy:
 
@@ -398,7 +398,7 @@ def main(mdot, L, mach):
 
             update_plot(high_res=True)
 
-            plt.show()
+            #plt.show()
 
         print("\n" + "="*60)
         print("FINAL CALCULATION CHECK | SOLVER.PY")
@@ -440,6 +440,7 @@ def main(mdot, L, mach):
             y_calc,
             L,
             wall_y_mirrored,
-            mdot
+            mdot,
+            fig
         )
     return solver()

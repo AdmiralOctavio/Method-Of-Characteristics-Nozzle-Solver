@@ -1,9 +1,9 @@
 # Imports
 
-import IsentropicTools as IT
+import engine.IsentropicTools as IT
 import numpy as np
-import CombustionChamber as CC
-import Parameters as Param
+import engine.CombustionChamber as CC
+import engine.Parameters as Param
 import time
 
 # Iterative solver file for the script. Nothing in here needs to be modified by the user
