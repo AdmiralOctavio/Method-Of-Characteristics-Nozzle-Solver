@@ -36,7 +36,7 @@ Dxf = Param.Dxf
 
 
 
-def outputTable(R, mdot):
+def outputTable(R, mdot, mach):
     console = Console()
     (
         wall_x,
@@ -59,7 +59,7 @@ def outputTable(R, mdot):
         L,
         wall_y_mirrored,
         mdot
-    ) = solver.solver(Graph2d, Graph3d, Graph3d_Fancy, R, mdot)
+    ) = solver.main(mdot, R, mach)
 
     table = Table(
         show_header=False,
@@ -158,7 +158,7 @@ def outputTable(R, mdot):
 
     table.add_row(
         "[light_green]Design exit Mach:",
-        f"[light_green]{M_exit}",
+        f"[light_green]{M_exit:.2f}",
         " ",
         "[light_green]Predicted exit Mach:",
         f"[light_green]{M_exit_characteristic:.2f}",

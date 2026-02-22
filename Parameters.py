@@ -1,6 +1,8 @@
 from rocketcea.cea_obj_w_units import CEA_Obj
 from rocketcea.blends import newFuelBlend
 from rich import print
+import cea
+import numpy as np
 
 # Everything marked by "!!!" can (and should) be changed for your design.
 # If it doesn't have this mark, you can still change it, but I can't guarantee it'll work.
@@ -38,6 +40,33 @@ ethanol80 = newFuelBlend(["Ethanol", "H2O"], [80, 20])
 ethanol90 = newFuelBlend(["Ethanol", "H2O"], [90, 10])
 ethanol100 = newFuelBlend(["Ethanol", "H2O"], [100, 0])
 
+fuel_weights = np.array([1, 0, 0.0])
+oxidant_weights = np.array([0.0, 0.0, 1.0])
+T_reactant = np.array([298.15, 298.15, 298.15])
+reac_names = [b"C2H5OH(L)", b"H2O", b"N2O"]
+reac = cea.Mixture(reac_names)
+prod = cea.Mixture(reac_names, products_from_reactants = True)
+
+weights = reac.of_ratio_to_weights(oxidant_weights, fuel_weights, Oxidiser_Fuel_Ratio)
+
+# compute chamber enthalpy (normalised by the universal gas constant R)
+hc = reac.calc_property(cea.ENTHALPY, weights, T_reactant) / cea.R
+
+solver = cea.RocketSolver(prod, reactants=reac)
+solution = cea.RocketSolution(solver)
+pc = P_combustion / (10**5)
+pi_p = 33.55
+solver.solve(solution, weights, pc, pi_p, subar=[16], supar=[5.5],
+             hc=hc, iac=True)  # iac=True for infinite‑area combustor
+
+T_combustion = solution.T[0]                          # Temperatures at different stations (K)
+P = solution.P[0]                          # Pressures (bar)
+rho = solution.density                  # Density (kg/m³)
+Cstr = solution.c_star[0]                # Characteristic velocity (m/s)
+Cf = solution.coefficient_of_thrust     # Thrust coefficient
+ISP_cea = solution.Isp[4] / 9.80665                      # Specific impulse (s)
+
+
 # CEA Object for specific config
 obj = CEA_Obj(oxName="N2O", fuelName=ethanol100, temperature_units="degK", pressure_units="bar") # !!!
 configuration = obj.get_IvacCstrTc_ChmMwGam(Pc=P_combustion / 10**5, MR=Oxidiser_Fuel_Ratio, eps=5)
@@ -50,14 +79,13 @@ Contraction_ratio = 16                          # !!!
 M_exit = 2.23                                    # !!!
 Thrust = 600                                    # !!! N
 g = float(configuration[4])
-Cstr = float(configuration[1]) * 0.3048
-T_combustion = float(configuration[2])
-ISP_cea = configuration[0]
+# Cstr = float(configuration[1]) * 0.3048
+# T_combustion = float(configuration[2])
+# ISP_cea = configuration[0]
 
 R = 8.314
 Mw = configuration[3] / 1000                    # kg/mol
 Rs = R / Mw
-mdot = 0.3067                                   # !!! kg/s
                                    # !!!  Theoretical throat radius in mm
 Chamber_Slope = 45                              # !!!
 R1 = 10                                         # !!!
