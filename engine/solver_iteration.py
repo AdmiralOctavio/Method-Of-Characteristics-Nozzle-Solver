@@ -10,6 +10,7 @@ import time
 # This script contains all the sub-function definitions (such as local slopes)
 # And the iterative solver algorithm.
 
+
 # Parameter Definition (Do not touch)
 def main(mdot, L, mach):
     Efficiency = Param.Nozzle_Efficiency * Param.Combustion_Efficiency
@@ -57,17 +58,13 @@ def main(mdot, L, mach):
         def as_arrays(self):
             return self.x, self.y
 
-
     grid = GridField(k_max, n_max)
-
 
     def phi_k(k, dv):
         return (k - 1) * dv
 
-
     def v_region(k, n, dv):
         return 2 * dv * (n - 1) + (k - 1) * dv
-
 
     def slopes(k, n, dv, g):
         v_kn = v_region(k, n, dv)
@@ -90,7 +87,6 @@ def main(mdot, L, mach):
         else:
             return m1, m2
 
-
     # I think this is actually the initial kernel lowk
     def coords_n1(k, dv, g, grid, L):
         n = 1
@@ -100,7 +96,6 @@ def main(mdot, L, mach):
         y_k1 = y_km1 + m1 * (x_k1 - x_km1)
         # print(f"x_{k-1} = {x_km1}, y_{k-1} = {y_km1}, m1 = {m1}, m2 = {m2}")
         return x_k1, y_k1
-
 
     def coords_k1(n, dv, g, grid):
         k = 1
@@ -112,7 +107,6 @@ def main(mdot, L, mach):
 
         return x_kn, y_kn
 
-
     def coords(k, n, dv, g, grid):
         x_kp1nm1, y_kp1nm1 = grid.get_xy(k + 1, n - 1)
         x_km1n, y_km1n = grid.get_xy(k - 1, n)
@@ -123,15 +117,11 @@ def main(mdot, L, mach):
         y_kn = y_km1n + m1 * (x_kn - x_km1n)
         return x_kn, y_kn
 
-
     time0 = time.time()
     print(n_max * k_max / 2)
 
-
     # basically the wall points are defined as kmax, 1 -> kmax - 1, 2, ... 2, nmax - 1.
     def solver():
-
-
 
         grid.set_xy(1, 1, -L / (slopes(1, 1, dv, g)[1]), 0.0)
         progress = 0
@@ -196,7 +186,6 @@ def main(mdot, L, mach):
 
         y_min = np.min(wall_y)
 
-
         A_calc = (y_calc / 1000) ** 2 * np.pi
         A_throat = (y_min / 1000) ** 2 * np.pi
 
@@ -208,12 +197,12 @@ def main(mdot, L, mach):
         # M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, g, 'supersonic')
         M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, g, "supersonic")
 
-        P_exit = IT.Pressure(P_combustion, g, M_exit_characteristic)
-        T_exit = IT.Temperature(T_combustion, g, M_exit_characteristic)
-        A = IT.LocalSoS(g, Rs, T_exit)
+        P_exit = IT.Pressure(P_combustion, Param.g_exit, M_exit_characteristic)
+        T_exit = IT.Temperature(T_combustion, Param.g_exit, M_exit_characteristic)
+        A = IT.LocalSoS(Param.g_exit, Rs, T_exit)
 
         Ve = A * M_exit_characteristic * Efficiency
-        Thrust = (mdot * Ve + (P_exit - P_amb) * A_exit)
+        Thrust = mdot * Ve + (P_exit - P_amb) * A_exit
 
         time1 = time.time()
 
@@ -224,17 +213,17 @@ def main(mdot, L, mach):
 
         mdot_new = P_combustion * A_throat_new / Cstr
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("FINAL CALCULATION CHECK | SOLVER_ITERATION.PY")
-        print("="*60)
+        print("=" * 60)
         print(f"Input L (throat radius): {L:.4f} mm")
         print(f"Input mdot: {mdot:.6f} kg/s")
         print(f"Calculated y_min: {y_min:.4f} mm")
-        print(f"A_throat: {A_throat*1e6:.4f} mm²")
-        print(f"A_exit: {A_exit*1e6:.4f} mm²")
-        print(f"Expansion ratio: {A_exit/A_throat:.4f}")
+        print(f"A_throat: {A_throat * 1e6:.4f} mm²")
+        print(f"A_exit: {A_exit * 1e6:.4f} mm²")
+        print(f"Expansion ratio: {A_exit / A_throat:.4f}")
         print(f"M_exit: {M_exit_characteristic:.4f}")
-        print(f"P_exit: {P_exit/1e5:.4f} bar")
+        print(f"P_exit: {P_exit / 1e5:.4f} bar")
         print(f"T_exit: {T_exit:.2f} K")
         print(f"Ve: {Ve:.2f} m/s")
         print(f"Momentum thrust: {mdot * Ve:.2f} N")
@@ -243,7 +232,8 @@ def main(mdot, L, mach):
         print(f"Efficiency: {Efficiency:.4f}")
         print(f"Thrust (after eff): {Thrust:.2f} N")
         print(f"C_F: {C_F:.4f}")
-        print("="*60 + "\n")
+        print("=" * 60 + "\n")
 
         return C_F, Thrust, mdot_new, P_exit
+
     return solver()

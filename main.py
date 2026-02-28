@@ -5,11 +5,18 @@ import numpy as np
 import engine.solver_iteration as SI
 from scipy.optimize import fsolve
 
+##################################################################################
+#                                                                                #
+# Numerical Solver for Rocket Nozzles based off of the Method of Characteristics #
+#                                                                                #
+# Creator:  Flavio Cicero                                                        #
+# Date:     28/02/2026                                                           #
+# Version:  1.0                                                                  #
+#                                                                                #
+##################################################################################
+
+
 def run(gui_mode=False):
-    """
-    Main run logic. 
-    If gui_mode=True, returns data dictionary for Streamlit.
-    """
     def engine_residuals(variables):
         mdot_guess, mach_guess = variables
         

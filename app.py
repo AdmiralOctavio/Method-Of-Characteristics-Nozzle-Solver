@@ -5,11 +5,13 @@ import main
 import matplotlib.pyplot as plt
 import utils.Output as Output
 import hashlib
+from engine.Fuels import PROPELLANTS, PROPELLANT_OPTIONS
 
 st.set_page_config(page_title="LCARS — MoC Nozzle Designer", layout="wide")
 
 # ── LCARS CSS ─────────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&display=swap');
 
@@ -190,11 +192,22 @@ hr { border-color: #1a1a33 !important; }
     font-family: 'Antonio', sans-serif !important;
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
-LCARS_PALETTE = ["#ff9900", "#ffcc66", "#b566ff", "#44aaaa", "#ffccaa", "#4488ff", "#cc6644"]
+LCARS_PALETTE = [
+    "#ff9900",
+    "#ffcc66",
+    "#b566ff",
+    "#44aaaa",
+    "#ffccaa",
+    "#4488ff",
+    "#cc6644",
+]
+
 
 def _seeded_color(seed_str: str, offset: int = 0) -> str:
     """Pick a colour deterministically from the palette based on a string seed.
@@ -202,6 +215,7 @@ def _seeded_color(seed_str: str, offset: int = 0) -> str:
     labels get different ones — giving that LCARS 'organised chaos' feel."""
     h = int(hashlib.md5(seed_str.encode()).hexdigest(), 16)
     return LCARS_PALETTE[(h + offset) % len(LCARS_PALETTE)]
+
 
 def _contrast_pair(seed_str: str):
     """Return (bg_color, neighbour_color) that are never the same."""
@@ -218,7 +232,8 @@ def lcars_metric(label: str, value: str, color: str = None):
     """Single LCARS-styled data readout tile."""
     if color is None:
         color = _seeded_color(label)
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div style="
         background: #0d0a08;
         border-left: 6px solid {color};
@@ -242,14 +257,17 @@ def lcars_metric(label: str, value: str, color: str = None):
             letter-spacing: 0.04em;
         ">{value}</div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def lcars_metric_status(label: str, value: str, status_ok: bool = True):
     """LCARS metric tile with a status pill badge."""
-    color      = "#44cc88" if status_ok else "#cc4444"
+    color = "#44cc88" if status_ok else "#cc4444"
     badge_text = "NOMINAL" if status_ok else "WARNING"
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div style="
         background: #0d0a08;
         border-left: 6px solid {color};
@@ -287,7 +305,9 @@ def lcars_metric_status(label: str, value: str, status_ok: bool = True):
             letter-spacing: 0.04em;
         ">{value}</div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 # ── LCARS section divider with chaotic colour segments ───────────────────────
@@ -297,7 +317,8 @@ def lcars_divider(label: str, primary: str = "#ff9900"):
     the label as a seed so every section looks consistently different."""
     c1, c2 = _contrast_pair(label + "A")
     c3, c4 = _contrast_pair(label + "B")
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div style="display:flex; align-items:stretch; height:32px;
                 margin:20px 0 10px 0; gap:0;">
         <!-- rounded left cap -->
@@ -321,11 +342,14 @@ def lcars_divider(label: str, primary: str = "#ff9900"):
         <div style="width:70px; background:{c3};
                     border-radius:0 16px 16px 0;"></div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 # ── LCARS Top Bar ─────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <div style="display:flex; align-items:stretch; height:64px; margin-bottom:6px; gap:0;">
     <div style="width:64px; background:#ff9900; border-radius:32px 0 0 0; flex-shrink:0;"></div>
     <div style="width:8px; background:#0d0a08;"></div>
@@ -358,11 +382,14 @@ st.markdown("""
     <div style="width:8px; background:#0d0a08;"></div>
     <div style="width:90px; background:#ffcc66; border-radius:0 0 6px 0;"></div>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
+    st.markdown(
+        """
     <div style="background:#b566ff; border-radius:28px 0 0 0; height:56px;
                 display:flex; align-items:center; padding:0 16px; margin-bottom:0;">
         <span style="font-family:'Antonio',sans-serif; font-size:1.1rem; font-weight:700;
@@ -377,43 +404,50 @@ with st.sidebar:
         <div style="width:4px; background:#0d0a08;"></div>
         <div style="flex:1; background:#ffcc66;"></div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     st.header("01 — PERFORMANCE")
-    pc_mPa        = st.number_input("Chamber Pressure (Bar)", 10, 200, 34)
-    P.Ambient_P   = st.number_input("Ambient Pressure (Pa)", 0, 101325, 101325)
-    of_val        = st.number_input("O/F Ratio", value=5.13)
-    thrust_val    = st.number_input("Target Thrust (N)", value=600)
-    P.Refinement  = st.number_input("Refinement Factor", value=100)
+    P.Selected_Propellant = st.selectbox(
+        "Propellant",
+        options=[k for k, _ in PROPELLANT_OPTIONS],
+        format_func=lambda k: PROPELLANTS[k].name,
+    )
+    pc_mPa = st.number_input("Chamber Pressure (Bar)", 10, 200, 34)
+    P.Ambient_P = st.number_input("Ambient Pressure (Pa)", 0, 101325, 101325)
+    of_val = st.number_input("O/F Ratio", value=5.13)
+    thrust_val = st.number_input("Target Thrust (N)", value=600)
+    P.Refinement = st.number_input("Refinement Factor", value=100)
     P.Shorten_Percentage = st.slider("Total Nozzle Length (%)", 50, 100, 75, 5) / 100
 
     st.header("02 — CHAMBER")
-    P.L_combustion      = st.number_input("Total Chamber Length", value=83.02)
+    P.L_combustion = st.number_input("Total Chamber Length", value=83.02)
     P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
-    P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
-    P.R1                = st.number_input("Radius 1", value=10)
-    P.R2                = st.number_input("Radius 2", value=50)
+    P.Chamber_Slope = st.number_input("Convergent Chamber Slope", value=45)
+    P.R1 = st.number_input("Radius 1", value=10)
+    P.R2 = st.number_input("Radius 2", value=50)
 
     st.header("03 — OUTPUT")
     P.Graph2d = st.toggle("2D Characteristic Grid", value=True)
     P.Graph3d = st.toggle("3D Characteristic Grid", value=False)
-    P.Stl     = st.toggle("Generate STL", value=False)
-    P.Dxf     = st.toggle("Generate DXF", value=True)
+    P.Stl = st.toggle("Generate STL", value=False)
+    P.Dxf = st.toggle("Generate DXF", value=True)
 
     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
 # ── Run button ────────────────────────────────────────────────────────────────
 if st.sidebar.button("▶  INITIALIZE SOLVER", use_container_width=True):
-    P.P_combustion        = pc_mPa * 1e5
+    P.P_combustion = pc_mPa * 1e5
     P.Oxidiser_Fuel_Ratio = of_val
-    P.Thrust              = thrust_val
+    P.Thrust = thrust_val
 
     P.update_engine_data(P.P_combustion, P.Oxidiser_Fuel_Ratio)
 
     with st.spinner("PROCESSING — PLEASE STAND BY..."):
         opt_results = main.run(gui_mode=True)
         data = Output.outputTable(
-            opt_results['rt'], opt_results['mdot'], opt_results['mach']
+            opt_results["rt"], opt_results["mdot"], opt_results["mach"]
         )
 
     # ── Panel 1: Geometry ─────────────────────────────────────────────────────
@@ -421,15 +455,15 @@ if st.sidebar.button("▶  INITIALIZE SOLVER", use_container_width=True):
     with st.container(border=True):
         c1, c2, c3 = st.columns(3)
         with c1:
-            lcars_metric("Nozzle Length",   f"{data['wall_x'][-1]:.2f} mm")
-            lcars_metric("Total Length",    f"{data['total_length']:.2f} mm")
+            lcars_metric("Nozzle Length", f"{data['wall_x'][-1]:.2f} mm")
+            lcars_metric("Total Length", f"{data['total_length']:.2f} mm")
         with c2:
-            lcars_metric("Throat Radius",   f"{data['y_min']:.2f} mm")
-            lcars_metric("Throat Diameter", f"{data['y_min']*2:.2f} mm")
+            lcars_metric("Throat Radius", f"{data['y_min']:.2f} mm")
+            lcars_metric("Throat Diameter", f"{data['y_min'] * 2:.2f} mm")
         with c3:
-            lcars_metric("Exit Radius",     f"{data['exit_radius']:.2f} mm")
+            lcars_metric("Exit Radius", f"{data['exit_radius']:.2f} mm")
 
-        angle_ok = data['Exit_Angle'] <= 6
+        angle_ok = data["Exit_Angle"] <= 6
         lcars_metric_status(
             "Exit Angle",
             f"{data['Exit_Angle']:.2f}°",
@@ -441,14 +475,14 @@ if st.sidebar.button("▶  INITIALIZE SOLVER", use_container_width=True):
     with st.container(border=True):
         p1, p2, p3 = st.columns(3)
         with p1:
-            lcars_metric("Chamber Temperature",    f"{data['T_comb']:.1f} K")
-            lcars_metric("Gamma",                  f"{data['g']:.3f}")
+            lcars_metric("Chamber Temperature", f"{data['T_comb']:.1f} K")
+            lcars_metric("Gamma", f"{data['g']:.3f}")
         with p2:
-            lcars_metric("SL Optimal Pressure Ratio", f"{data['P_comb']/101325:.2f}")
-            lcars_metric("SL Optimal Exit Mach",      f"{data['M_opt']:.2f}")
-            lcars_metric("SL Optimal Expansion Ratio",f"{data['AR_opt']:.2f}")
+            lcars_metric("SL Optimal Pressure Ratio", f"{data['P_comb'] / 101325:.2f}")
+            lcars_metric("SL Optimal Exit Mach", f"{data['M_opt']:.2f}")
+            lcars_metric("SL Optimal Expansion Ratio", f"{data['AR_opt']:.2f}")
         with p3:
-            lcars_metric("Predicted Exit Mach",    f"{data['M_exit_predicted']:.2f}")
+            lcars_metric("Predicted Exit Mach", f"{data['M_exit_predicted']:.2f}")
 
     # ── Panel 3: Thrust ───────────────────────────────────────────────────────
     lcars_divider("THRUST + FLOW STABILITY", "#44aaaa")
@@ -457,10 +491,10 @@ if st.sidebar.button("▶  INITIALIZE SOLVER", use_container_width=True):
         with t1:
             lcars_metric("Total Predicted Thrust", f"{data['Thrust_total']:.1f} N")
         with t2:
-            flow_ok = data['P_exit'] >= 0.4 * P.Ambient_P
-            lcars_metric_status("Exit Pressure",
-                                f"{data['P_exit']/1000:.1f} kPa",
-                                status_ok=flow_ok)
+            flow_ok = data["P_exit"] >= 0.4 * P.Ambient_P
+            lcars_metric_status(
+                "Exit Pressure", f"{data['P_exit'] / 1000:.1f} kPa", status_ok=flow_ok
+            )
             if not flow_ok:
                 st.error("⚠  FLOW SEPARATION RISK — RECOMMEND REDESIGN")
             else:
@@ -472,17 +506,18 @@ if st.sidebar.button("▶  INITIALIZE SOLVER", use_container_width=True):
         e1, e2 = st.columns(2)
         with e1:
             lcars_metric("Specific Impulse (Design)", f"{data['Isp_design']:.1f} s")
-            lcars_metric("CEA Ideal Isp",             f"{data['Isp_cea']:.1f} s")
+            lcars_metric("CEA Ideal Isp", f"{data['Isp_cea']:.1f} s")
         with e2:
             lcars_metric("Mass Flow Rate", f"{data['mdot']:.3f} kg/s")
 
     # ── Plot ──────────────────────────────────────────────────────────────────
-    if data['fig']:
+    if data["fig"]:
         lcars_divider("METHOD OF CHARACTERISTICS GRID", "#4488ff")
-        st.pyplot(data['fig'])
+        st.pyplot(data["fig"])
 
     # ── LCARS bottom bar ──────────────────────────────────────────────────────
-    st.markdown("""
+    st.markdown(
+        """
     <div style="margin-top:28px; display:flex; height:18px; gap:6px;">
         <div style="width:64px; background:#b566ff; border-radius:0 0 0 12px;"></div>
         <div style="width:8px; background:#0d0a08;"></div>
@@ -494,4 +529,6 @@ if st.sidebar.button("▶  INITIALIZE SOLVER", use_container_width=True):
         <div style="width:8px; background:#0d0a08;"></div>
         <div style="width:90px; background:#ffcc66; border-radius:0 0 12px 0;"></div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )

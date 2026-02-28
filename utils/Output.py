@@ -18,9 +18,6 @@ def divider(color):
     return [Rule(style=color)]
 
 
-
-
-
 folder_name = "Output_Files"
 if not os.path.exists(folder_name):
     os.makedirs(folder_name)
@@ -32,9 +29,10 @@ Write = Param.Write
 Stl = Param.Stl
 Dxf = Param.Dxf
 
-# Output file. Just outputs a table with the important design parameters, along with activating the write functions if required.
+'''
+Output file. Just outputs a table with the important design parameters, along with activating the write functions if required.
 
-
+'''
 
 def outputTable(R, mdot, mach):
     console = Console()
@@ -59,7 +57,7 @@ def outputTable(R, mdot, mach):
         L,
         wall_y_mirrored,
         mdot,
-        fig
+        fig,
     ) = solver.main(mdot, R, mach)
 
     table = Table(
@@ -98,7 +96,7 @@ def outputTable(R, mdot, mach):
         f"[cyan3]{y_min:.2f} mm",
         " ",
         "[cyan3]True throat diameter:",
-        f"[cyan3]{2*y_min:.2f} mm",
+        f"[cyan3]{2 * y_min:.2f} mm",
     )
 
     table.add_row(
@@ -127,7 +125,7 @@ def outputTable(R, mdot, mach):
 
     table.add_row(
         "[light_sky_blue3]Optimal pressure ratio:",
-        f"[light_sky_blue3]{P_combustion/101325:.2f}",
+        f"[light_sky_blue3]{P_combustion / 101325:.2f}",
         "",
         "",
     )
@@ -151,7 +149,7 @@ def outputTable(R, mdot, mach):
 
     table.add_row(
         "[green_yellow]Theoretical expansion ratio:",
-        f"[green_yellow]{(wall_y[-1]**2 / L**2):.2f}",
+        f"[green_yellow]{(wall_y[-1] ** 2 / L**2):.2f}",
         " ",
         "[green_yellow]True expansion ratio:",
         f"[green_yellow]{(y_calc**2 / y_min**2):.2f}",
@@ -171,10 +169,10 @@ def outputTable(R, mdot, mach):
 
     table.add_row(
         "[light_green]> Thrust (massflow):",
-        f"[light_green]{Thrust - (P_exit-Param.Ambient_P)*A_exit:.2f} N",
+        f"[light_green]{Thrust - (P_exit - Param.Ambient_P) * A_exit:.2f} N",
         " ",
         "[light_green]> Thrust (pressure):",
-        f"[light_green]{(P_exit-Param.Ambient_P)*A_exit:.2f} N",
+        f"[light_green]{(P_exit - Param.Ambient_P) * A_exit:.2f} N",
     )
 
     if P_exit < 0.25 * Param.Ambient_P:
@@ -193,15 +191,12 @@ def outputTable(R, mdot, mach):
 
     table.add_row(
         "[light_green]Specific impulse:",
-        f"[light_green]{Ve/9.80665:.2f} s",
+        f"[light_green]{Ve / 9.80665:.2f} s",
         " ",
         "[light_green]CEA ISp:",
         f"[light_green]{ISP_cea:.2f} s",
     )
-    table.add_row(
-        "[green_yellow]Mass flow-rate:",
-        f"[green_yellow]{mdot:.3f} kg/s"
-    )
+    table.add_row("[green_yellow]Mass flow-rate:", f"[green_yellow]{mdot:.3f} kg/s")
 
     panel = Panel(
         table,
@@ -251,9 +246,9 @@ def outputTable(R, mdot, mach):
         "Isp_cea": ISP_cea,
         "Isp_design": Ve / 9.80665,
         "mdot": mdot,
-        "AR_theoretical": (wall_y[-1]**2 / L**2),
+        "AR_theoretical": (wall_y[-1] ** 2 / L**2),
         "AR_true": (y_calc**2 / y_min**2),
         "fig": fig,
         "total_length": wall_x[-1] - wall_x[0],
-        "exit_radius": wall_y[-1]
+        "exit_radius": wall_y[-1],
     }

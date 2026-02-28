@@ -14,6 +14,7 @@ import engine.CombustionChamber as CC
 import engine.Parameters as Param
 import time
 
+
 def main(mdot, L, mach):
     def m(s):
         return Text.from_markup(s)
@@ -22,31 +23,33 @@ def main(mdot, L, mach):
         return [Rule(style=color)]
 
     # ── LCARS Palette ─────────────────────────────────────────────────────────
-    LCARS_BG      = "#0d0a08"   # deep navy black
-    LCARS_SURFACE = "#0d0a08"   # panel surface
-    LCARS_ORANGE  = "#ff9900"   # primary LCARS orange
-    LCARS_GOLD    = "#ffcc66"   # secondary gold
-    LCARS_PURPLE  = "#9977cc"   # LCARS purple
-    LCARS_TEAL    = "#44aaaa"   # LCARS teal
-    LCARS_RED     = "#cc4444"   # warning red
-    LCARS_DIM     = "#444466"   # dimmed grid/border
+    LCARS_BG = "#0d0a08"  # deep navy black
+    LCARS_SURFACE = "#0d0a08"  # panel surface
+    LCARS_ORANGE = "#ff9900"  # primary LCARS orange
+    LCARS_GOLD = "#ffcc66"  # secondary gold
+    LCARS_PURPLE = "#9977cc"  # LCARS purple
+    LCARS_TEAL = "#44aaaa"  # LCARS teal
+    LCARS_RED = "#cc4444"  # warning red
+    LCARS_DIM = "#444466"  # dimmed grid/border
 
     # ── Global rcParams ───────────────────────────────────────────────────────
-    plt.rcParams.update({
-        "font.family":    "monospace",
-        "font.size":      9,
-        "text.color":     LCARS_GOLD,
-        "axes.facecolor": LCARS_SURFACE,
-        "figure.facecolor": LCARS_BG,
-        "axes.edgecolor": LCARS_DIM,
-        "axes.labelcolor": LCARS_GOLD,
-        "xtick.color":    LCARS_GOLD,
-        "ytick.color":    LCARS_GOLD,
-        "grid.color":     LCARS_DIM,
-        "grid.linestyle": "-",
-        "grid.linewidth": 0.4,
-        "grid.alpha":     0.4,
-    })
+    plt.rcParams.update(
+        {
+            "font.family": "monospace",
+            "font.size": 9,
+            "text.color": LCARS_GOLD,
+            "axes.facecolor": LCARS_SURFACE,
+            "figure.facecolor": LCARS_BG,
+            "axes.edgecolor": LCARS_DIM,
+            "axes.labelcolor": LCARS_GOLD,
+            "xtick.color": LCARS_GOLD,
+            "ytick.color": LCARS_GOLD,
+            "grid.color": LCARS_DIM,
+            "grid.linestyle": "-",
+            "grid.linewidth": 0.4,
+            "grid.alpha": 0.4,
+        }
+    )
 
     # ── Parameter Definition ──────────────────────────────────────────────────
     Efficiency = Param.Nozzle_Efficiency * Param.Combustion_Efficiency
@@ -67,7 +70,6 @@ def main(mdot, L, mach):
     R1 = Param.R1
     R2 = Param.R2
     P_amb = Param.Ambient_P
-
 
     class GridField:
         def __init__(self, k_max, n_max):
@@ -96,7 +98,6 @@ def main(mdot, L, mach):
         def as_arrays(self):
             return self.x, self.y
 
-
     grid = GridField(k_max, n_max)
 
     def phi_k(k, dv):
@@ -106,14 +107,14 @@ def main(mdot, L, mach):
         return 2 * dv * (n - 1) + (k - 1) * dv
 
     def slopes(k, n, dv, g):
-        v_kn      = v_region(k,     n,     dv)
-        v_km1np1  = v_region(k - 1, n + 1, dv)
-        M_kn      = IT.PMinv(v_kn,     g)
-        M_km1np1  = IT.PMinv(v_km1np1, g)
-        mu_kn     = IT.mu(M_kn)
+        v_kn = v_region(k, n, dv)
+        v_km1np1 = v_region(k - 1, n + 1, dv)
+        M_kn = IT.PMinv(v_kn, g)
+        M_km1np1 = IT.PMinv(v_km1np1, g)
+        mu_kn = IT.mu(M_kn)
         mu_km1np1 = IT.mu(M_km1np1)
-        Phi_k     = phi_k(k,     dv)
-        Phi_km1   = phi_k(k - 1, dv)
+        Phi_k = phi_k(k, dv)
+        Phi_km1 = phi_k(k - 1, dv)
         m1 = np.tan((mu_kn + mu_km1np1) / 2 + (Phi_k + Phi_km1) / 2)
         m2 = -np.tan((mu_kn + mu_km1np1) / 2 - (Phi_k + Phi_km1) / 2)
         if k == int(k_max - n):
@@ -135,7 +136,7 @@ def main(mdot, L, mach):
 
     def coords(k, n, dv, g, grid):
         x_kp1nm1, y_kp1nm1 = grid.get_xy(k + 1, n - 1)
-        x_km1n,   y_km1n   = grid.get_xy(k - 1, n)
+        x_km1n, y_km1n = grid.get_xy(k - 1, n)
         m1, m2 = slopes(k, n, dv, g)
         x_kn = ((y_kp1nm1 - m2 * x_kp1nm1) - (y_km1n - m1 * x_km1n)) / (m1 - m2)
         y_kn = y_km1n + m1 * (x_kn - x_km1n)
@@ -156,26 +157,46 @@ def main(mdot, L, mach):
             ax_rail.set_facecolor(LCARS_BG)
             ax_rail.axis("off")
 
-            rail_colors  = [LCARS_ORANGE, LCARS_PURPLE, LCARS_TEAL,
-                            LCARS_GOLD,   LCARS_ORANGE, LCARS_PURPLE, LCARS_TEAL]
+            rail_colors = [
+                LCARS_ORANGE,
+                LCARS_PURPLE,
+                LCARS_TEAL,
+                LCARS_GOLD,
+                LCARS_ORANGE,
+                LCARS_PURPLE,
+                LCARS_TEAL,
+            ]
             rail_heights = [0.16, 0.05, 0.20, 0.05, 0.24, 0.05, 0.16]
             y_cur = 0.97
-            gap   = 0.012
+            gap = 0.012
             for rc, rh in zip(rail_colors, rail_heights):
-                ax_rail.add_patch(plt.Rectangle(
-                    (0.15, y_cur - rh), 0.7, rh,
-                    transform=ax_rail.transAxes, color=rc, clip_on=False,
-                ))
+                ax_rail.add_patch(
+                    plt.Rectangle(
+                        (0.15, y_cur - rh),
+                        0.7,
+                        rh,
+                        transform=ax_rail.transAxes,
+                        color=rc,
+                        clip_on=False,
+                    )
+                )
                 y_cur -= rh + gap
 
             # Rounded top cap on rail
             from matplotlib.patches import FancyBboxPatch
-            ax_rail.add_patch(FancyBboxPatch(
-                (0.15, 0.955), 0.7, 0.04,
-                boxstyle="round,pad=0.015",
-                transform=ax_rail.transAxes,
-                facecolor=LCARS_ORANGE, edgecolor="none", clip_on=False,
-            ))
+
+            ax_rail.add_patch(
+                FancyBboxPatch(
+                    (0.15, 0.955),
+                    0.7,
+                    0.04,
+                    boxstyle="round,pad=0.015",
+                    transform=ax_rail.transAxes,
+                    facecolor=LCARS_ORANGE,
+                    edgecolor="none",
+                    clip_on=False,
+                )
+            )
 
             # ── Top header bar ────────────────────────────────────────────────
             ax_top = fig.add_axes([0.07, 0.88, 0.92, 0.075])
@@ -193,16 +214,25 @@ def main(mdot, L, mach):
                 (0.813, 0.187, LCARS_GOLD),
             ]
             for sx, sw, sc in header_segs:
-                ax_top.add_patch(plt.Rectangle(
-                    (sx, 0), sw, 1.0,
-                    transform=ax_top.transAxes, color=sc,
-                ))
+                ax_top.add_patch(
+                    plt.Rectangle(
+                        (sx, 0),
+                        sw,
+                        1.0,
+                        transform=ax_top.transAxes,
+                        color=sc,
+                    )
+                )
             ax_top.text(
-                0.01, 0.5,
+                0.01,
+                0.5,
                 "NOZZLE WALL CONTOUR  +  CHARACTERISTICS   //   MOC SOLVER",
                 transform=ax_top.transAxes,
-                color=LCARS_BG, fontsize=9, fontweight="bold",
-                va="center", fontfamily="monospace",
+                color=LCARS_BG,
+                fontsize=9,
+                fontweight="bold",
+                va="center",
+                fontfamily="monospace",
             )
 
             # ── Main plot axes ────────────────────────────────────────────────
@@ -223,10 +253,15 @@ def main(mdot, L, mach):
                 (0.578, 0.422, LCARS_GOLD),
             ]
             for sx, sw, sc in bot_segs:
-                ax_bot.add_patch(plt.Rectangle(
-                    (sx, 0), sw, 1.0,
-                    transform=ax_bot.transAxes, color=sc,
-                ))
+                ax_bot.add_patch(
+                    plt.Rectangle(
+                        (sx, 0),
+                        sw,
+                        1.0,
+                        transform=ax_bot.transAxes,
+                        color=sc,
+                    )
+                )
 
         # ── Solver loop ───────────────────────────────────────────────────────
         grid.set_xy(1, 1, -L / (slopes(1, 1, dv, g)[1]), 0.0)
@@ -247,13 +282,30 @@ def main(mdot, L, mach):
         wall_y = []
 
         # ── Glow line helper ──────────────────────────────────────────────────
-        def glow_plot(axes, x, y, color, lw=1.5, alpha_base=1.0, zorder=3, linestyle="-"):
+        def glow_plot(
+            axes, x, y, color, lw=1.5, alpha_base=1.0, zorder=3, linestyle="-"
+        ):
             for w, a in [(8, 0.04), (5, 0.09), (2.5, 0.2)]:
-                axes.plot(x, y, color=color, lw=lw * w / 1.5,
-                          alpha=alpha_base * a, zorder=zorder - 1,
-                          solid_capstyle="round", linestyle="-")
-            axes.plot(x, y, color=color, lw=lw, alpha=alpha_base,
-                      zorder=zorder, solid_capstyle="round", linestyle=linestyle)
+                axes.plot(
+                    x,
+                    y,
+                    color=color,
+                    lw=lw * w / 1.5,
+                    alpha=alpha_base * a,
+                    zorder=zorder - 1,
+                    solid_capstyle="round",
+                    linestyle="-",
+                )
+            axes.plot(
+                x,
+                y,
+                color=color,
+                lw=lw,
+                alpha=alpha_base,
+                zorder=zorder,
+                solid_capstyle="round",
+                linestyle=linestyle,
+            )
 
         # ── Characteristics Family II ─────────────────────────────────────────
         for NII in range(1, int(n_max)):
@@ -294,8 +346,8 @@ def main(mdot, L, mach):
         wall_y_mirrored = -wall_y
         y_min = np.min(wall_y)
 
-        A_calc   = (y_calc / 1000) ** 2 * np.pi
-        A_throat = (y_min  / 1000) ** 2 * np.pi
+        A_calc = (y_calc / 1000) ** 2 * np.pi
+        A_throat = (y_min / 1000) ** 2 * np.pi
 
         x_final_characteristic, _ = GridField.get_xy(grid, 1, n_max - 1)
         index = np.argmin(np.abs(wall_x - x_final_characteristic))
@@ -304,11 +356,11 @@ def main(mdot, L, mach):
         A_exit = (y_final_characteristic / 1000) ** 2 * np.pi
         M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, g, "supersonic")
 
-        P_exit = IT.Pressure(P_combustion, g, M_exit_characteristic)
-        T_exit = IT.Temperature(T_combustion, g, M_exit_characteristic)
-        A_sos  = IT.LocalSoS(g, Rs, T_exit)
+        P_exit = IT.Pressure(P_combustion, Param.g_exit, M_exit_characteristic)
+        T_exit = IT.Temperature(T_combustion, Param.g_exit, M_exit_characteristic)
+        A_sos = IT.LocalSoS(Param.g_exit, Rs, T_exit)
 
-        Ve     = A_sos * M_exit_characteristic * Efficiency
+        Ve = A_sos * M_exit_characteristic * Efficiency
         Thrust = mdot * Ve + (P_exit - P_amb) * A_exit
         Exit_Angle = np.rad2deg(
             np.arctan2(wall_y[-1] - wall_y[-2], wall_x[-1] - wall_x[-2])
@@ -320,13 +372,31 @@ def main(mdot, L, mach):
         # ── 2D Plot ───────────────────────────────────────────────────────────
         if Graph2d:
             # Wall contour
-            glow_plot(ax, wall_x, wall_y,          LCARS_ORANGE, lw=2.2, alpha_base=1.0, zorder=5)
-            glow_plot(ax, wall_x, wall_y_mirrored,  LCARS_ORANGE, lw=2.2, alpha_base=1.0, zorder=5)
+            glow_plot(
+                ax, wall_x, wall_y, LCARS_ORANGE, lw=2.2, alpha_base=1.0, zorder=5
+            )
+            glow_plot(
+                ax,
+                wall_x,
+                wall_y_mirrored,
+                LCARS_ORANGE,
+                lw=2.2,
+                alpha_base=1.0,
+                zorder=5,
+            )
 
             # Centreline dash
             x0 = np.array([np.min(wall_x), np.max(wall_x)])
-            glow_plot(ax, x0, np.zeros(2), LCARS_GOLD,
-                      lw=0.9, alpha_base=0.7, zorder=4, linestyle="-.")
+            glow_plot(
+                ax,
+                x0,
+                np.zeros(2),
+                LCARS_GOLD,
+                lw=0.9,
+                alpha_base=0.7,
+                zorder=4,
+                linestyle="-.",
+            )
 
             ax.set_xlabel("X  (mm)", fontsize=9)
             ax.set_ylabel("Y  (mm)", fontsize=9)
@@ -339,15 +409,36 @@ def main(mdot, L, mach):
 
             # Legend
             from matplotlib.lines import Line2D
+
             legend_elements = [
-                Line2D([0], [0], color=LCARS_ORANGE, lw=2,
-                       label="NOZZLE WALL CONTOUR"),
-                Line2D([0], [0], color=LCARS_RED,    lw=1, linestyle="--", alpha=0.8,
-                       label="CHAR. FAMILY II"),
-                Line2D([0], [0], color=LCARS_PURPLE, lw=1, linestyle="--", alpha=0.8,
-                       label="CHAR. FAMILY I  (INTERNAL)"),
-                Line2D([0], [0], color=LCARS_TEAL,   lw=1, linestyle="--", alpha=0.8,
-                       label="CHAR. FAMILY I  (EXIT)"),
+                Line2D([0], [0], color=LCARS_ORANGE, lw=2, label="NOZZLE WALL CONTOUR"),
+                Line2D(
+                    [0],
+                    [0],
+                    color=LCARS_RED,
+                    lw=1,
+                    linestyle="--",
+                    alpha=0.8,
+                    label="CHAR. FAMILY II",
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    color=LCARS_PURPLE,
+                    lw=1,
+                    linestyle="--",
+                    alpha=0.8,
+                    label="CHAR. FAMILY I  (INTERNAL)",
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    color=LCARS_TEAL,
+                    lw=1,
+                    linestyle="--",
+                    alpha=0.8,
+                    label="CHAR. FAMILY I  (EXIT)",
+                ),
             ]
             leg = ax.legend(
                 handles=legend_elements,
@@ -371,7 +462,7 @@ def main(mdot, L, mach):
 
             theta = np.linspace(0, 2 * np.pi, 100)
             theta_grid, wall_x_grid = np.meshgrid(theta, wall_x)
-            _,          wall_y_grid = np.meshgrid(theta, wall_y)
+            _, wall_y_grid = np.meshgrid(theta, wall_y)
 
             X = wall_x_grid
             Y = wall_y_grid * np.cos(theta_grid)
@@ -379,9 +470,10 @@ def main(mdot, L, mach):
 
             # LCARS gradient: deep navy → purple → teal → gold
             lcars_cmap = LinearSegmentedColormap.from_list(
-                "lcars", ["#0a0a14", "#9977cc", "#44aaaa", "#ffcc66"],
+                "lcars",
+                ["#0a0a14", "#9977cc", "#44aaaa", "#ffcc66"],
             )
-            norm   = plt.Normalize(wall_y.min() - 5, wall_y.max() + 5)
+            norm = plt.Normalize(wall_y.min() - 5, wall_y.max() + 5)
             colors = lcars_cmap(norm(wall_y_grid))
             colors[..., 3] = 0.92
 
@@ -391,18 +483,35 @@ def main(mdot, L, mach):
 
                 stride = (1, 1) if high_res else (8, 8)
                 ax3.plot_surface(
-                    X, Y, Z,
+                    X,
+                    Y,
+                    Z,
                     facecolors=colors,
                     linewidth=0,
                     antialiased=high_res,
-                    rstride=stride[0], cstride=stride[1],
+                    rstride=stride[0],
+                    cstride=stride[1],
                 )
 
                 # Profile lines in X-Z plane (both sides)
-                ax3.plot(wall_x, np.zeros_like(wall_x), wall_y,
-                            color=LCARS_ORANGE, lw=1.8, alpha=0.95, zorder=10)
-                ax3.plot(wall_x, np.zeros_like(wall_x), wall_y,
-                            color=LCARS_GOLD, lw=5, alpha=0.15, zorder=9)
+                ax3.plot(
+                    wall_x,
+                    np.zeros_like(wall_x),
+                    wall_y,
+                    color=LCARS_ORANGE,
+                    lw=1.8,
+                    alpha=0.95,
+                    zorder=10,
+                )
+                ax3.plot(
+                    wall_x,
+                    np.zeros_like(wall_x),
+                    wall_y,
+                    color=LCARS_GOLD,
+                    lw=5,
+                    alpha=0.15,
+                    zorder=9,
+                )
 
                 ax3.set_xlabel("X  (mm)", color=LCARS_GOLD, labelpad=8)
                 ax3.set_ylabel("Y  (mm)", color=LCARS_GOLD, labelpad=8)
@@ -416,7 +525,9 @@ def main(mdot, L, mach):
 
                 ax3.set_title(
                     "NOZZLE GEOMETRY  //  3D SURFACE  //  MOC SOLVER",
-                    color=LCARS_GOLD, fontsize=11, pad=14,
+                    color=LCARS_GOLD,
+                    fontsize=11,
+                    pad=14,
                     fontfamily="monospace",
                 )
 
@@ -437,22 +548,22 @@ def main(mdot, L, mach):
             def on_release(event):
                 update_plot(high_res=True)
 
-            fig.canvas.mpl_connect("button_press_event",   on_click)
+            fig.canvas.mpl_connect("button_press_event", on_click)
             fig.canvas.mpl_connect("button_release_event", on_release)
 
             update_plot(high_res=True)
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("FINAL CALCULATION CHECK | SOLVER.PY")
-        print("="*60)
+        print("=" * 60)
         print(f"Input L (throat radius): {L:.4f} mm")
         print(f"Input mdot: {mdot:.6f} kg/s")
         print(f"Calculated y_min: {y_min:.4f} mm")
-        print(f"A_throat: {A_throat*1e6:.4f} mm²")
-        print(f"A_exit: {A_exit*1e6:.4f} mm²")
-        print(f"Expansion ratio: {A_exit/A_throat:.4f}")
+        print(f"A_throat: {A_throat * 1e6:.4f} mm²")
+        print(f"A_exit: {A_exit * 1e6:.4f} mm²")
+        print(f"Expansion ratio: {A_exit / A_throat:.4f}")
         print(f"M_exit: {M_exit_characteristic:.4f}")
-        print(f"P_exit: {P_exit/1e5:.4f} bar")
+        print(f"P_exit: {P_exit / 1e5:.4f} bar")
         print(f"T_exit: {T_exit:.2f} K")
         print(f"Ve: {Ve:.2f} m/s")
         print(f"Momentum thrust: {mdot * Ve:.2f} N")
@@ -460,7 +571,7 @@ def main(mdot, L, mach):
         print(f"Thrust (before eff): {(mdot * Ve + (P_exit - P_amb) * A_exit):.2f} N")
         print(f"Efficiency: {Efficiency:.4f}")
         print(f"Thrust (after eff): {Thrust:.2f} N")
-        print("="*60 + "\n")
+        print("=" * 60 + "\n")
 
         return (
             wall_x,
@@ -483,6 +594,7 @@ def main(mdot, L, mach):
             L,
             wall_y_mirrored,
             mdot,
-            fig
+            fig,
         )
+
     return solver()
