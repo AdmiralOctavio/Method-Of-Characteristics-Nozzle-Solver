@@ -24,7 +24,7 @@ def run(gui_mode=False):
         _, thrust_new, _, P_exit = SI.main(mdot_val, r_t, mach_val)
 
         thrust_error = thrust_new - P.Thrust
-        pressure_error = P_exit - 101325 # Perfectly expanded target
+        pressure_error = P_exit - P.Ambient_P # Perfectly expanded target
 
         return [thrust_error, pressure_error]
 

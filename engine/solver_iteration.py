@@ -28,6 +28,7 @@ def main(mdot, L, mach):
     R2 = Param.R2
     Cstr = Param.Cstr
     Thrust_target = Param.Thrust
+    P_amb = Param.Ambient_P
 
     class GridField:
         def __init__(self, k_max, n_max):
@@ -212,7 +213,7 @@ def main(mdot, L, mach):
         A = IT.LocalSoS(g, Rs, T_exit)
 
         Ve = A * M_exit_characteristic * Efficiency
-        Thrust = (mdot * Ve + (P_exit - 101325) * A_exit)
+        Thrust = (mdot * Ve + (P_exit - P_amb) * A_exit)
 
         time1 = time.time()
 
@@ -237,8 +238,8 @@ def main(mdot, L, mach):
         print(f"T_exit: {T_exit:.2f} K")
         print(f"Ve: {Ve:.2f} m/s")
         print(f"Momentum thrust: {mdot * Ve:.2f} N")
-        print(f"Pressure thrust: {(P_exit - 101325) * A_exit:.2f} N")
-        print(f"Thrust (before eff): {(mdot * Ve + (P_exit - 101325) * A_exit):.2f} N")
+        print(f"Pressure thrust: {(P_exit - P_amb) * A_exit:.2f} N")
+        print(f"Thrust (before eff): {(mdot * Ve + (P_exit - P_amb) * A_exit):.2f} N")
         print(f"Efficiency: {Efficiency:.4f}")
         print(f"Thrust (after eff): {Thrust:.2f} N")
         print(f"C_F: {C_F:.4f}")

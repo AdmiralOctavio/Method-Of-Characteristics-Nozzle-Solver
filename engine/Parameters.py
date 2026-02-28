@@ -4,7 +4,7 @@ from rich import print
 import cea
 import numpy as np
 
-# --- Default Constants & UI-Linked Parameters ---
+# Default Constants & UI-Linked Parameters
 P_combustion = 3.4 * 10**6                      
 Oxidiser_Fuel_Ratio = 5.13                      
 Refinement = 100                                
@@ -14,7 +14,8 @@ Shorten_Percentage = 0.75
 Nozzle_Efficiency = 0.985                       
 Combustion_Efficiency = 0.85  
 Graph2d = False
-Graph3d = True                  
+Graph3d = True      
+Ambient_P = 101325            
 
 # Aesthetic / Export Options
 Graph3d_Fancy = False
@@ -38,7 +39,7 @@ Chamber_Slope = 45
 R1 = 10                                         
 R2 = 50                                         
 
-# --- Global Containers for Solver Access ---
+# Global Containers for Solver Access 
 T_combustion = 0.0
 Cstr = 0.0
 g = 1.2

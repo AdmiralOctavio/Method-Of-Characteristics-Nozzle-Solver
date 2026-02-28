@@ -171,17 +171,17 @@ def outputTable(R, mdot, mach):
 
     table.add_row(
         "[light_green]> Thrust (massflow):",
-        f"[light_green]{Thrust - (P_exit-101325)*A_exit:.2f} N",
+        f"[light_green]{Thrust - (P_exit-Param.Ambient_P)*A_exit:.2f} N",
         " ",
         "[light_green]> Thrust (pressure):",
-        f"[light_green]{(P_exit-101325)*A_exit:.2f} N",
+        f"[light_green]{(P_exit-Param.Ambient_P)*A_exit:.2f} N",
     )
 
-    if P_exit < 0.25 * 101325:
+    if P_exit < 0.25 * Param.Ambient_P:
         warn = Text("FLOW SEPARATION WILL OCCUR", style="bold red")
-    elif P_exit < 0.4 * 101325:
+    elif P_exit < 0.4 * Param.Ambient_P:
         warn = Text("Flow separation may occur", style="bold orange1")
-    elif P_exit < 0.5 * 101325:
+    elif P_exit < 0.5 * Param.Ambient_P:
         warn = Text("Nearing exit instability region", style="yellow")
     else:
         warn = Text("Flow stable", style="green")
@@ -245,7 +245,7 @@ def outputTable(R, mdot, mach):
         "M_exit_predicted": M_exit_characteristic,
         "Thrust_total": Thrust,
         "Thrust_momentum": mdot * Ve,
-        "Thrust_pressure": (P_exit - 101325) * A_exit,
+        "Thrust_pressure": (P_exit - Param.Ambient_P) * A_exit,
         "P_exit": P_exit,
         "Ve": Ve,
         "Isp_cea": ISP_cea,
