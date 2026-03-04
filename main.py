@@ -11,7 +11,7 @@ from scipy.optimize import fsolve
 #                                                                                #
 # Creator:  Flavio Cicero                                                        #
 # Date:     28/02/2026                                                           #
-# Version:  1.1                                                                  #
+# Version:  1.2                                                                  #
 #                                                                                #
 ##################################################################################
 

@@ -9,6 +9,7 @@ import utils.stlgenerator as stlgenerator
 import os
 import engine.solver_lcars as solver_lcars
 import engine.solver_crt as solver_crt
+import engine.solver_standard as solver_standard
 
 
 def m(s):
@@ -63,7 +64,7 @@ def outputTable(R, mdot, mach, theme):
             mdot,
             fig,
         ) = solver_lcars.main(mdot, R, mach)
-    else: 
+    elif theme == 'crt': 
         (
             wall_x,
             Exit_Angle,
@@ -87,6 +88,32 @@ def outputTable(R, mdot, mach, theme):
             mdot,
             fig,
         ) = solver_crt.main(mdot, R, mach)
+
+    elif theme == 'standard':
+        (
+            wall_x,
+            Exit_Angle,
+            y_min,
+            T_combustion,
+            g,
+            P_combustion,
+            M_optimal,
+            AreaRatio,
+            wall_y,
+            M_exit,
+            M_exit_characteristic,
+            Thrust,
+            A_exit,
+            P_exit,
+            Ve,
+            ISP_cea,
+            y_calc,
+            L,
+            wall_y_mirrored,
+            mdot,
+            fig,
+        ) = solver_standard.main(mdot, R, mach)
+
         
 
     table = Table(

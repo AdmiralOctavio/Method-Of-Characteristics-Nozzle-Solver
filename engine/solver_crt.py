@@ -274,9 +274,9 @@ def main(mdot, L, mach):
         A_exit = (y_final_characteristic / 1000) ** 2 * np.pi
         M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, g, "supersonic")
 
-        P_exit = IT.Pressure(P_combustion, g, M_exit_characteristic)
-        T_exit = IT.Temperature(T_combustion, g, M_exit_characteristic)
-        A = IT.LocalSoS(g, Rs, T_exit)
+        P_exit = IT.Pressure(P_combustion, Param.g_exit, M_exit_characteristic)
+        T_exit = IT.Temperature(T_combustion, Param.g_exit, M_exit_characteristic)
+        A = IT.LocalSoS(Param.g_exit, Rs, T_exit)
 
         Ve = A * M_exit_characteristic * Efficiency
         Thrust = (mdot * Ve + (P_exit - P_amb) * A_exit)

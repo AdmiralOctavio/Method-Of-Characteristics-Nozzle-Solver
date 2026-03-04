@@ -10,82 +10,36 @@ st.set_page_config(page_title="MOC Nozzle Designer", layout="wide")
 
 # ── Theme state ───────────────────────────────────────────────────────────────
 if "theme" not in st.session_state:
-    st.session_state.theme = "lcars"
+    st.session_state.theme = "standard"
 
 theme = st.session_state.theme
 
-# ── Theme toggle button CSS — pinned into top-right corner ────────────────────
-if theme == "lcars":
-    st.markdown("""
-    <style>
-    div[data-testid="stButton"]:has(button[data-testid="baseButton-secondary"]#theme-btn) button,
-    div[data-testid="stButton"] button[key="theme-btn"] {
-        position: fixed !important;
-        top: 0px !important;
-        right: 0px !important;
-        width: 98px !important;
-        height: 74px !important;
-        background-color: #b566ff !important;
-        color: #000000 !important;
-        border: none !important;
-        border-radius: 0 32px 0 0 !important;
-        font-family: 'Antonio', sans-serif !important;
-        font-size: 0.78rem !important;
-        font-weight: 700 !important;
-        letter-spacing: 0.15em !important;
-        text-transform: uppercase !important;
-        z-index: 1000 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1.3 !important;
-    }
-    div[data-testid="stButton"] button[key="theme-btn"]:hover {
-        background-color: #cc88ff !important;
-        box-shadow: none !important;
-    }
-    /* Nudge the button column to zero padding so it sits flush */
-    div[data-testid="stHorizontalBlock"] > div:last-child {
-        padding: 0 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-    <style>
-    div[data-testid="stButton"] button[key="theme-btn"] {
-        position: fixed !important;
-        top: 0px !important;
-        right: 0px !important;
-        width: 98px !important;
-        height: 56px !important;
-        background-color: #0a0500 !important;
-        color: #ff6a00 !important;
-        border: 1px solid #ff6a00 !important;
-        border-radius: 0 !important;
-        font-family: 'Share Tech Mono', monospace !important;
-        font-size: 0.72rem !important;
-        font-weight: 400 !important;
-        letter-spacing: 0.12em !important;
-        text-transform: uppercase !important;
-        z-index: 1000 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    div[data-testid="stButton"] button[key="theme-btn"]:hover {
-        background-color: #ff6a00 !important;
-        color: #0a0500 !important;
-        box-shadow: 0 0 12px #ff6a00 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# ── Theme selector — three buttons top right ──────────────────────────────────
+st.markdown("""
+<style>
+/* Style the theme selector row specifically */
+div[data-testid="stHorizontalBlock"]:first-of-type button {
+    border-radius: 4px !important;
+    font-size: 0.75rem !important;
+    padding: 0.3rem 0.5rem !important;
+    letter-spacing: 0.08em;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# Render the toggle button (will be repositioned by CSS above)
-if st.button(
-    "▓  CRT\nMODE" if theme == "lcars" else "◈  LCARS\nMODE",
-    key="theme-btn"
-):
-    st.session_state.theme = "crt" if theme == "lcars" else "lcars"
-    st.rerun()
+_sp, _t1, _t2, _t3 = st.columns([0.58, 0.14, 0.14, 0.14])
+with _t1:
+    if st.button("LCARS", key="btn_lcars", use_container_width=True):
+        st.session_state.theme = "lcars"
+        st.rerun()
+with _t2:
+    if st.button("CRT", key="btn_crt", use_container_width=True):
+        st.session_state.theme = "crt"
+        st.rerun()
+with _t3:
+    if st.button("STD", key="btn_std", use_container_width=True):
+        st.session_state.theme = "standard"
+        st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -202,8 +156,7 @@ if theme == "lcars":
     [data-testid="stToggle"] span { background-color: #333355 !important; }
     [data-testid="stToggle"] input:checked + span { background-color: var(--lcars-teal) !important; }
 
-    /* All buttons except the theme toggle */
-    [data-testid="stButton"] button:not([key="theme-btn"]) {
+    [data-testid="stButton"] button {
         background-color: var(--lcars-orange) !important;
         color: var(--lcars-black) !important;
         border: none !important;
@@ -216,7 +169,7 @@ if theme == "lcars":
         padding: 0.6rem 1.4rem !important;
         transition: background-color 0.15s, box-shadow 0.15s;
     }
-    [data-testid="stButton"] button:not([key="theme-btn"]):hover {
+    [data-testid="stButton"] button:hover {
         background-color: var(--lcars-gold) !important;
         box-shadow: 0 0 16px var(--lcars-orange);
     }
@@ -351,7 +304,7 @@ if theme == "lcars":
         </div>
         """, unsafe_allow_html=True)
 
-    # ── Top bar (purple segment omitted — replaced by fixed theme button) ─────
+    # ── Top bar ───────────────────────────────────────────────────────────────
     st.markdown("""
     <div style="display:flex; align-items:stretch; height:64px; margin-bottom:6px; gap:0;">
         <div style="width:64px; background:#ff9900; border-radius:32px 0 0 0; flex-shrink:0;"></div>
@@ -435,7 +388,6 @@ if theme == "lcars":
 
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
-    # ── Run button ────────────────────────────────────────────────────────────
     if st.sidebar.button("▶  INITIALIZE SOLVER", use_container_width=True):
         P.P_combustion        = pc_mPa * 1e5
         P.Oxidiser_Fuel_Ratio = of_val
@@ -591,10 +543,7 @@ elif theme == "crt":
         text-transform: uppercase;
         letter-spacing: 0.1em;
     }
-    [data-testid="stMetricValue"] {
-        color: var(--crt-glow) !important;
-        font-size: 1.4rem !important;
-    }
+    [data-testid="stMetricValue"] { color: var(--crt-glow) !important; font-size: 1.4rem !important; }
     [data-testid="stMetricDelta"] { color: var(--crt-green) !important; }
     input, textarea, [data-baseweb="input"] input {
         background-color: var(--crt-bg) !important;
@@ -615,9 +564,7 @@ elif theme == "crt":
     }
     [data-testid="stToggle"] span { background-color: var(--crt-border) !important; }
     [data-testid="stToggle"] input:checked + span { background-color: var(--crt-amber) !important; }
-
-    /* All buttons except theme toggle */
-    [data-testid="stButton"] button:not([key="theme-btn"]) {
+    [data-testid="stButton"] button {
         background-color: var(--crt-bg) !important;
         color: var(--crt-amber) !important;
         border: 1px solid var(--crt-amber) !important;
@@ -627,7 +574,7 @@ elif theme == "crt":
         letter-spacing: 0.1em;
         transition: box-shadow 0.15s ease, background-color 0.15s ease;
     }
-    [data-testid="stButton"] button:not([key="theme-btn"]):hover {
+    [data-testid="stButton"] button:hover {
         background-color: var(--crt-amber) !important;
         color: var(--crt-bg) !important;
         box-shadow: 0 0 12px var(--crt-amber);
@@ -768,4 +715,107 @@ elif theme == "crt":
         if data["fig"]:
             st.divider()
             st.subheader("METHOD OF CHARACTERISTICS GRID")
+            st.pyplot(data["fig"])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STANDARD THEME
+# ══════════════════════════════════════════════════════════════════════════════
+elif theme == "standard":
+
+    st.title("MOC Nozzle Designer")
+    st.caption("Axisymmetric nozzle solver — Method of Characteristics")
+    st.divider()
+
+    with st.sidebar:
+        st.title("Parameters")
+
+        with st.expander("Performance", expanded=True):
+            P.Selected_Propellant = st.selectbox(
+                "Propellant",
+                options=[k for k, _ in PROPELLANT_OPTIONS],
+                format_func=lambda k: PROPELLANTS[k].name,
+            )
+            pc_mPa                  = st.number_input("Chamber Pressure (Bar)", 10, 200, 34)
+            P.Ambient_P             = st.number_input("Ambient Pressure (Pa)", 0, 101325, 101325)
+            of_val                  = st.number_input("O/F Ratio", value=5.13)
+            thrust_val              = st.number_input("Target Thrust (N)", value=600)
+            P.Combustion_Efficiency = st.number_input("Combustion Efficiency (%)", 0, 100, 85) / 100
+            P.Refinement            = st.number_input("Refinement Factor", value=100)
+            P.Shorten_Percentage    = st.slider("Nozzle Length (%)", 50, 100, 75, 5) / 100
+
+        with st.expander("Chamber Geometry", expanded=False):
+            P.L_combustion      = st.number_input("Total Chamber Length", value=83.02)
+            P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
+            P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
+            P.R1                = st.number_input("Radius 1", value=10)
+            P.R2                = st.number_input("Radius 2", value=50)
+
+        with st.expander("Output Options", expanded=False):
+            P.Graph2d = st.toggle("2D Characteristic Grid", value=True)
+            P.Graph3d = st.toggle("3D Characteristic Grid", value=False)
+            P.Stl     = st.toggle("Generate STL", value=False)
+            P.Dxf     = st.toggle("Generate DXF", value=True)
+
+        st.divider()
+        run = st.button("Run Solver", type="primary", use_container_width=True)
+
+    if run:
+        P.P_combustion        = pc_mPa * 1e5
+        P.Oxidiser_Fuel_Ratio = of_val
+        P.Thrust              = thrust_val
+        P.update_engine_data(P.P_combustion, P.Oxidiser_Fuel_Ratio)
+
+        with st.spinner("Running solver..."):
+            opt_results = main.run(gui_mode=True)
+            data = Output.outputTable(opt_results["rt"], opt_results["mdot"], opt_results["mach"], theme)
+
+        # Geometry
+        st.subheader("Geometry")
+        g1, g2, g3, g4, g5 = st.columns(5)
+        g1.metric("Nozzle Length",   f"{data['wall_x'][-1]:.2f} mm")
+        g2.metric("Total Length",    f"{data['total_length']:.2f} mm")
+        g3.metric("Throat Radius",   f"{data['y_min']:.2f} mm")
+        g4.metric("Throat Diameter", f"{data['y_min']*2:.2f} mm")
+        g5.metric("Exit Radius",     f"{data['exit_radius']:.2f} mm")
+        angle_ok = data["Exit_Angle"] <= 6
+        st.metric(
+            "Exit Angle",
+            f"{data['Exit_Angle']:.2f}°",
+            delta="Within limit" if angle_ok else "Exceeds 6° limit",
+            delta_color="normal" if angle_ok else "inverse",
+        )
+
+        st.divider()
+
+        # Performance
+        st.subheader("Performance")
+        p1, p2, p3, p4 = st.columns(4)
+        p1.metric("Chamber Temperature",     f"{data['T_comb']:.1f} K")
+        p1.metric("Gamma",                   f"{data['g']:.3f}")
+        p2.metric("Optimal Pressure Ratio",  f"{data['P_comb']/101325:.2f}")
+        p2.metric("Optimal Exit Mach",       f"{data['M_opt']:.2f}")
+        p3.metric("Optimal Expansion Ratio", f"{data['AR_opt']:.2f}")
+        p3.metric("Predicted Exit Mach",     f"{data['M_exit_predicted']:.2f}")
+        p4.metric("Specific Impulse",        f"{data['Isp_design']:.1f} s")
+        p4.metric("CEA Ideal Isp",           f"{data['Isp_cea']:.1f} s")
+
+        st.divider()
+
+        # Thrust & flow
+        st.subheader("Thrust & Flow")
+        t1, t2, t3 = st.columns(3)
+        t1.metric("Predicted Thrust", f"{data['Thrust_total']:.1f} N")
+        t2.metric("Exit Pressure",    f"{data['P_exit']/1000:.2f} kPa")
+        t3.metric("Mass Flow Rate",   f"{data['mdot']:.4f} kg/s")
+
+        if data["P_exit"] < 0.4 * P.Ambient_P:
+            st.warning("Flow separation risk — exit pressure is below 40% of ambient pressure.")
+        else:
+            st.success("Flow stable at design condition.")
+
+        # Plot
+        if data["fig"]:
+            st.divider()
+            st.subheader("Method of Characteristics Grid")
             st.pyplot(data["fig"])
