@@ -78,6 +78,7 @@ def update_engine_data(pc_pa, of_ratio):
 
     config2 = obj.get_exit_MolWt_gamma(Pc=pc_bar, MR=of_ratio, eps=5.77)
     g_exit = config2[1]
+    print(f"Exit gamma: {g_exit}")
 
     config3 = obj.get_Throat_MolWt_gamma(Pc=pc_bar, MR=of_ratio, eps=5.77)
     g = config3[1]

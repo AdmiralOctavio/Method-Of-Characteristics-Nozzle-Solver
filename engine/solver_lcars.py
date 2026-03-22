@@ -354,7 +354,7 @@ def main(mdot, L, mach):
         y_final_characteristic = wall_y[index]
 
         A_exit = (y_final_characteristic / 1000) ** 2 * np.pi
-        M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, g, "supersonic")
+        M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, Param.g_exit, "supersonic")
 
         P_exit = IT.Pressure(P_combustion, Param.g_exit, M_exit_characteristic)
         T_exit = IT.Temperature(T_combustion, Param.g_exit, M_exit_characteristic)
