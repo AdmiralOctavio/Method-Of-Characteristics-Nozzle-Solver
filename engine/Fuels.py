@@ -119,6 +119,17 @@ LOX_Ethanol80 = PropellantConfig(
     fuel_name   = _ethanol80,
 )
 
+Peroxide98_RP1 = PropellantConfig(
+    name         = "Peroxide (98%) / RP-1",
+    reac_names   = [b"H2O2", b"H2O", "RP-1"],
+    fuel_weights = np.array([0, 0, 1]),
+    oxidant_weights = np.array([0.98, 0.02, 0]),
+    T_reactant      = np.array([298.15, 298.15, 298.15]),
+    ox_name         = "H2O2",
+    fuel_name       = "RP-1"
+
+)
+
 
 PROPELLANTS: dict[str, PropellantConfig] = {
     "n2o_ethanol100": N2O_Ethanol100,
@@ -127,6 +138,7 @@ PROPELLANTS: dict[str, PropellantConfig] = {
     "lox_lh2": LOX_LH2,
     "lox_ethanol100": LOX_Ethanol100,
     "lox_ethanol80": LOX_Ethanol80,
+    "Peroxide98_rp1": Peroxide98_RP1,
 }
 
 PROPELLANT_OPTIONS = [(k, v.name) for k, v in PROPELLANTS.items()]
