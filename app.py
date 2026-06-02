@@ -374,7 +374,27 @@ if theme == "lcars":
         P.Shorten_Percentage   = st.slider("Total Nozzle Length (%)", 50, 100, 75, 5) / 100
 
         st.header("02 — CHAMBER")
-        P.L_combustion      = st.number_input("Total Chamber Length", value=83.02)
+        P.Lstar_Sizing = st.toggle("Size Length From L*", value=True)
+        if P.Lstar_Sizing:
+            _prop = PROPELLANTS[P.Selected_Propellant]
+            _short, _nominal, _elong = (float(v) for v in _prop.Lstar_range)
+            P.Lstar_Value = st.slider(
+                "Chamber L* (m)",
+                min_value=_short,
+                max_value=_elong,
+                value=_nominal,
+                step=0.01,
+            )
+            st.markdown(
+                "<div style='display:flex;justify-content:space-between;"
+                "font-size:0.72rem;opacity:0.65;margin-top:-8px;'>"
+                f"<span>Short<br>{_short:.2f}</span>"
+                f"<span style='text-align:center'>Nominal<br>{_nominal:.2f}</span>"
+                f"<span style='text-align:right'>Elongated<br>{_elong:.2f}</span></div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            P.L_combustion = st.number_input("Total Chamber Length", value=83.02)
         P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
         P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
         P.R1                = st.number_input("Radius 1", value=10)
@@ -648,7 +668,27 @@ elif theme == "crt":
         P.Shorten_Percentage    = st.slider("Total Nozzle Length", 50, 100, 75, 5) / 100
 
         st.header("02 // CHAMBER")
-        P.L_combustion      = st.number_input("Total Chamber Length", value=83.02)
+        P.Lstar_Sizing = st.toggle("Size Length From L*", value=True)
+        if P.Lstar_Sizing:
+            _prop = PROPELLANTS[P.Selected_Propellant]
+            _short, _nominal, _elong = (float(v) for v in _prop.Lstar_range)
+            P.Lstar_Value = st.slider(
+                "Chamber L* (m)",
+                min_value=_short,
+                max_value=_elong,
+                value=_nominal,
+                step=0.01,
+            )
+            st.markdown(
+                "<div style='display:flex;justify-content:space-between;"
+                "font-size:0.72rem;opacity:0.65;margin-top:-8px;'>"
+                f"<span>Short<br>{_short:.2f}</span>"
+                f"<span style='text-align:center'>Nominal<br>{_nominal:.2f}</span>"
+                f"<span style='text-align:right'>Elongated<br>{_elong:.2f}</span></div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            P.L_combustion = st.number_input("Total Chamber Length", value=83.02)
         P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
         P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
         P.R1                = st.number_input("Radius 1", value=10)
@@ -745,7 +785,27 @@ elif theme == "standard":
             P.Shorten_Percentage    = st.slider("Nozzle Length (%)", 50, 100, 75, 5) / 100
 
         with st.expander("Chamber Geometry", expanded=False):
-            P.L_combustion      = st.number_input("Total Chamber Length", value=83.02)
+            P.Lstar_Sizing = st.toggle("Size Length From L*", value=True)
+            if P.Lstar_Sizing:
+                _prop = PROPELLANTS[P.Selected_Propellant]
+                _short, _nominal, _elong = (float(v) for v in _prop.Lstar_range)
+                P.Lstar_Value = st.slider(
+                    "Chamber L* (m)",
+                    min_value=_short,
+                    max_value=_elong,
+                    value=_nominal,
+                    step=0.01,
+                )
+                st.markdown(
+                    "<div style='display:flex;justify-content:space-between;"
+                    "font-size:0.72rem;opacity:0.65;margin-top:-8px;'>"
+                    f"<span>Short<br>{_short:.2f}</span>"
+                    f"<span style='text-align:center'>Nominal<br>{_nominal:.2f}</span>"
+                    f"<span style='text-align:right'>Elongated<br>{_elong:.2f}</span></div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                P.L_combustion = st.number_input("Total Chamber Length", value=83.02)
             P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
             P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
             P.R1                = st.number_input("Radius 1", value=10)

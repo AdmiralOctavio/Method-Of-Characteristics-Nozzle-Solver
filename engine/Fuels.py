@@ -27,6 +27,15 @@ class PropellantConfig:
     ox_name: str = ""
     fuel_name: str = ""
 
+    # Characteristic chamber length L* in metres: (short, nominal, elongated).
+    # Drives combustion-chamber volume sizing in CombustionChamber.py.
+    Lstar_range: tuple = (1.0, 1.14, 1.27)
+
+    def get_lstar(self, option: str = "nominal") -> float:
+        """Return characteristic length L* (metres) for the chosen sizing option."""
+        idx = {"short": 0, "nominal": 1, "elongated": 2}.get(str(option).lower(), 1)
+        return self.Lstar_range[idx]
+
     def make_mixture(self):
         # Return (reac, prod, weights_fn) for new cea
         reac = cea.Mixture(self.reac_names)
@@ -67,6 +76,9 @@ N2O_Ethanol80 = PropellantConfig(
     T_reactant=np.array([298.15, 298.15, 298.15]),
     ox_name="N2O",
     fuel_name=_ethanol80,
+    # ESTIMATE: N2O/alcohol not tabulated in Sutton; N2O vaporisation tends to
+    # need a longer chamber. Tune against test data if available.
+    Lstar_range=(0.5, 1.0, 1.8),
 )
 
 N2O_Ethanol100 = PropellantConfig(
@@ -77,6 +89,8 @@ N2O_Ethanol100 = PropellantConfig(
     T_reactant=np.array([298.15, 298.15, 298.15]),
     ox_name="N2O",
     fuel_name=_ethanol100,
+    # ESTIMATE: see N2O_Ethanol80 note above.
+    Lstar_range=(0.5, 1.0, 1.8),
 )
 
 LOX_RP1 = PropellantConfig(
@@ -87,6 +101,8 @@ LOX_RP1 = PropellantConfig(
     T_reactant=np.array([298.15, 90.15]),
     ox_name="LOX",
     fuel_name="RP-1",
+    # Sutton & Biblarz, Rocket Propulsion Elements: O2/RP-1 L* = 1.02-1.27 m.
+    Lstar_range=(1.02, 1.14, 1.27),
 )
 
 LOX_LH2 = PropellantConfig(
@@ -97,6 +113,8 @@ LOX_LH2 = PropellantConfig(
     T_reactant=np.array([20.15, 90.15]),
     ox_name="LOX",
     fuel_name="LH2",
+    # Sutton & Biblarz, Rocket Propulsion Elements: O2/LH2 L* = 0.76-1.02 m.
+    Lstar_range=(0.76, 0.89, 1.02),
 )
 
 LOX_Ethanol100 = PropellantConfig(
@@ -104,9 +122,12 @@ LOX_Ethanol100 = PropellantConfig(
     reac_names  = [b"C2H5OH(L)", b"O2(L)"],
     fuel_weights    = np.array([1.0, 0.0]),   
     oxidant_weights = np.array([0.0, 1.0]),   
-    T_reactant  = np.array([298.15, 90.15]),  
+    T_reactant  = np.array([298.15, 90.15]),
     ox_name     = "LOX",
     fuel_name   = _ethanol100,
+    # ESTIMATE: O2/alcohol not directly tabulated; using Sutton's O2/ammonia
+    # band (0.76-1.02 m) as the closest analogue.
+    Lstar_range = (0.76, 0.89, 1.02),
 )
 
 LOX_Ethanol80 = PropellantConfig(
@@ -117,6 +138,8 @@ LOX_Ethanol80 = PropellantConfig(
     T_reactant  = np.array([298.15, 298.15, 90.15]),
     ox_name     = "LOX",
     fuel_name   = _ethanol80,
+    # ESTIMATE: see LOX_Ethanol100 note above.
+    Lstar_range = (0.76, 0.89, 1.02),
 )
 
 Peroxide98_RP1 = PropellantConfig(
@@ -126,8 +149,9 @@ Peroxide98_RP1 = PropellantConfig(
     oxidant_weights = np.array([0.98, 0.02, 0]),
     T_reactant      = np.array([298.15, 298.15, 298.15]),
     ox_name         = "H2O2",
-    fuel_name       = "RP-1"
-
+    fuel_name       = "RP-1",
+    # Sutton & Biblarz: H2O2/RP-1 L* = 1.52-1.78 m (long; slow decomposition).
+    Lstar_range     = (1.52, 1.65, 1.78),
 )
 
 

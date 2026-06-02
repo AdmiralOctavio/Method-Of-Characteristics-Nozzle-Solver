@@ -35,11 +35,19 @@ Materials = {
 }
 
 # Physical dimensions
-L_combustion = 83.02
+L_combustion = 83.02          # mm; used directly only when Lstar_Sizing is False.
+                              # When Lstar_Sizing is True this is overwritten with
+                              # the length computed from L* (for output/printouts).
 Contraction_ratio = 16
 Chamber_Slope = 45
 R1 = 10
 R2 = 50
+
+# Chamber length sizing
+Lstar_Sizing = True           # True: chamber length derived from L*; False: manual L_combustion
+Lstar_Value = 1.0             # metres; chosen on the UI slider between the propellant's
+                              # short (min) and elongated (max) L*. Used directly when set.
+Lstar_Option = "nominal"      # legacy fallback: "short" | "nominal" | "elongated"
 
 # Global Containers for Solver Access
 T_combustion = 0.0

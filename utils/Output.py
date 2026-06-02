@@ -265,14 +265,14 @@ def outputTable(R, mdot, mach, theme):
     console.print(panel)
 
     if Write:
-        combined = np.stack((wall_x / 1000, wall_y / 1000), axis=1)
+        wall_z = np.zeros_like(wall_x)
+        combined = np.stack((wall_x/10, wall_y/10, wall_z), axis=1)
         filename = f"Nozzle_Contour_M={M_exit:.2f}.csv"
         filepath = os.path.join(folder_name, filename)
         np.savetxt(
             filepath,
             combined,
             delimiter=",",
-            header="x_position (mm), y_radius (mm)",
             comments="",
         )
 

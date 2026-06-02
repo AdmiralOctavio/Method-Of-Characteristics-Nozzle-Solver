@@ -13,3 +13,4 @@ venv/
 *.csv
 *.stl
 *.dxf
+.claude/
