@@ -13,7 +13,7 @@ if not os.path.exists(folder_name):
 
 
 def create_dxf(x_contour, y_contour, Mach):
-    filename = f"Nozzle_Contour_M={Mach:.2f}.dxf"
+    filename = f"Contour.dxf"
     filepath = os.path.join(folder_name, filename)
     doc = ezdxf.new(dxfversion="R2018")
     msp = doc.modelspace()

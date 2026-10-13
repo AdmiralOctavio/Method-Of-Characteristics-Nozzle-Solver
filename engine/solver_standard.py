@@ -68,6 +68,7 @@ def main(mdot, L, mach):
     R1           = Param.R1
     R2           = Param.R2
     P_amb        = Param.Ambient_P
+    Cstr         = Param.Cstr
 
     class GridField:
         def __init__(self, k_max, n_max):
@@ -211,21 +212,24 @@ def main(mdot, L, mach):
         wall_y_mirrored = -wall_y
         y_min = np.min(wall_y)
 
-        A_calc   = (y_calc / 1000) ** 2 * np.pi
+        # Exit plane = the end of the *truncated* contour. y_calc is that last
+        # wall point (captured before the chamber is prepended), so every exit
+        # condition below is evaluated on the geometry actually being built.
+        A_exit   = (y_calc / 1000) ** 2 * np.pi
         A_throat = (y_min / 1000) ** 2 * np.pi
 
-        x_final_characteristic, _ = GridField.get_xy(grid, 1, n_max - 1)
-        index = np.argmin(np.abs(wall_x - x_final_characteristic))
-        y_final_characteristic = wall_y[index]
+        M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, Param.g_exit, "supersonic")
 
-        A_exit                = (y_final_characteristic / 1000) ** 2 * np.pi
-        M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, Param.g_exit, "supersonic")
+        Cstr_delivered  = Cstr * Param.Combustion_Efficiency
+        P_c_actual      = mdot * Cstr_delivered / A_throat
+        T_c_effective   = T_combustion * Param.Combustion_Efficiency**2
 
-        P_exit = IT.Pressure(P_combustion, Param.g_exit, M_exit_characteristic)
-        T_exit = IT.Temperature(T_combustion, Param.g_exit, M_exit_characteristic)
+
+        P_exit = IT.Pressure(P_c_actual, Param.g_exit, M_exit_characteristic)
+        T_exit = IT.Temperature(T_c_effective, Param.g_exit, M_exit_characteristic)
         A_sos  = IT.LocalSoS(Param.g_exit, Rs, T_exit)
 
-        Ve     = A_sos * M_exit_characteristic * Efficiency
+        Ve     = A_sos * M_exit_characteristic * Param.Nozzle_Efficiency
         Thrust = mdot * Ve + (P_exit - P_amb) * A_exit
         Exit_Angle = np.rad2deg(
             np.arctan2(wall_y[-1] - wall_y[-2], wall_x[-1] - wall_x[-2])
@@ -340,6 +344,7 @@ def main(mdot, L, mach):
         print(f"Thrust (before eff): {(mdot * Ve + (P_exit - P_amb) * A_exit):.2f} N")
         print(f"Efficiency: {Efficiency:.4f}")
         print(f"Thrust (after eff): {Thrust:.2f} N")
+        print(f"P_c_actual: {P_c_actual/1e5:.3f} bar  (design {P_combustion/1e5:.2f})")
         print("=" * 60 + "\n")
 
         return (

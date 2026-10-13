@@ -4,7 +4,8 @@ import main
 import matplotlib.pyplot as plt
 import utils.Output as Output
 import hashlib
-from engine.Fuels import PROPELLANTS, PROPELLANT_OPTIONS
+import numpy as np
+from engine.Fuels import OXIDISERS, FUELS
 
 st.set_page_config(page_title="MOC Nozzle Designer", layout="wide")
 
@@ -13,6 +14,85 @@ if "theme" not in st.session_state:
     st.session_state.theme = "standard"
 
 theme = st.session_state.theme
+
+
+def propellant_inputs():
+    """Oxidiser / fuel selectors, plus a concentration slider for fuel-water blends."""
+    P.Selected_Oxidiser = st.selectbox(
+        "Oxidiser",
+        options=list(OXIDISERS),
+        format_func=lambda k: OXIDISERS[k].name,
+    )
+    P.Selected_Fuel = st.selectbox(
+        "Fuel",
+        options=list(FUELS),
+        format_func=lambda k: FUELS[k].name,
+    )
+    fuel = FUELS[P.Selected_Fuel]
+    if fuel.water_blend:
+        P.Fuel_Concentration = st.slider(
+            f"{fuel.name} Concentration (wt%, balance water)",
+            50, 100, 100, 1,
+            key=f"fuel_conc_{P.Selected_Fuel}",
+        )
+    else:
+        P.Fuel_Concentration = 100.0
+    # Placeholder so the O/F sweep sits here, filled once Pc and O/F are known.
+    return st.container()
+
+
+@st.cache_data(show_spinner=False)
+def _of_sweep(oxidiser, fuel, concentration, pc_bar, ambient_p):
+    # Arguments are the cache key; P already holds the same selection.
+    return P.of_sweep(pc_bar * 1e5)
+
+
+def of_sweep_chart(slot, pc_bar, of_val):
+    """Mini Isp-vs-O/F chart: green at the Isp peak, fading to red 10% below it."""
+    of, isp, _ = _of_sweep(
+        P.Selected_Oxidiser, P.Selected_Fuel, float(P.Fuel_Concentration),
+        pc_bar, P.Ambient_P,
+    )
+    i_peak = int(np.argmax(isp))
+    score = np.clip(1 - (isp[i_peak] - isp) / (0.10 * isp[i_peak]), 0, 1)
+    base = isp.min() - 0.05 * (isp[i_peak] - isp.min())
+    ink = "#8a8a8a"  # readable on all three themes
+
+    fig, ax = plt.subplots(figsize=(3.2, 1.5), dpi=150)
+    fig.patch.set_alpha(0)
+    ax.patch.set_alpha(0)
+    ax.bar(of, isp - base, bottom=base, width=of[1] - of[0],
+           color=plt.cm.RdYlGn(score), linewidth=0)
+    ax.plot(of, isp, color=ink, linewidth=0.8)
+    ax.plot(of[i_peak], isp[i_peak], "v", color="#1a9850", markersize=4,
+            markeredgecolor=ink, markeredgewidth=0.4)
+    in_range = of[0] <= of_val <= of[-1]
+    if in_range:
+        # White over black so the marker shows on every colour band
+        ax.axvline(of_val, color="black", linewidth=2.0)
+        ax.axvline(of_val, color="white", linewidth=1.0)
+    ax.set_xlim(of[0], of[-1])
+    ax.set_ylim(base, isp[i_peak] + 0.12 * (isp[i_peak] - base))
+    ax.set_xlabel("O/F", fontsize=6, color=ink, labelpad=1)
+    ax.set_ylabel("Isp (s)", fontsize=6, color=ink, labelpad=1)
+    ax.tick_params(colors=ink, labelsize=5.5, length=2, width=0.5)
+    for side, spine in ax.spines.items():
+        spine.set_visible(side in ("left", "bottom"))
+        spine.set_color(ink)
+        spine.set_linewidth(0.5)
+    fig.tight_layout(pad=0.3)
+
+    with slot:
+        st.pyplot(fig, use_container_width=True)
+        text = f"Peak Isp {isp[i_peak]:.1f} s at O/F {of[i_peak]:.2f}"
+        if in_range:
+            isp_now = float(np.interp(of_val, of, isp))
+            text += (f" · selected {of_val:.2f} → {isp_now:.1f} s "
+                     f"({100 * (isp_now / isp[i_peak] - 1):+.1f}%)")
+        else:
+            text += f" · selected O/F {of_val:.2f} is off the chart"
+        st.caption(text)
+    plt.close(fig)
 
 # ── Theme selector — three buttons top right ──────────────────────────────────
 st.markdown("""
@@ -360,14 +440,11 @@ if theme == "lcars":
         """, unsafe_allow_html=True)
 
         st.header("01 — PERFORMANCE")
-        P.Selected_Propellant = st.selectbox(
-            "Propellant",
-            options=[k for k, _ in PROPELLANT_OPTIONS],
-            format_func=lambda k: PROPELLANTS[k].name,
-        )
+        _sweep_slot = propellant_inputs()
         pc_mPa                 = st.number_input("Chamber Pressure (Bar)", 10, 200, 34)
         P.Ambient_P            = st.number_input("Ambient Pressure (Pa)", 0, 101325, 101325)
         of_val                 = st.number_input("O/F Ratio", value=5.13)
+        of_sweep_chart(_sweep_slot, pc_mPa, of_val)
         thrust_val             = st.number_input("Target Thrust (N)", value=600)
         P.Combustion_Efficiency = st.number_input("Combustive Efficiency (%)", 0, 100, 85) / 100
         P.Refinement           = st.number_input("Refinement Factor", value=100)
@@ -376,7 +453,7 @@ if theme == "lcars":
         st.header("02 — CHAMBER")
         P.Lstar_Sizing = st.toggle("Size Length From L*", value=True)
         if P.Lstar_Sizing:
-            _prop = PROPELLANTS[P.Selected_Propellant]
+            _prop = P.get_propellant()
             _short, _nominal, _elong = (float(v) for v in _prop.Lstar_range)
             P.Lstar_Value = st.slider(
                 "Chamber L* (m)",
@@ -395,7 +472,7 @@ if theme == "lcars":
             )
         else:
             P.L_combustion = st.number_input("Total Chamber Length", value=83.02)
-        P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
+        P.Contraction_ratio = st.number_input("Contraction Ratio", value=16.00, step=0.01)
         P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
         P.R1                = st.number_input("Radius 1", value=10)
         P.R2                = st.number_input("Radius 2", value=50)
@@ -417,6 +494,8 @@ if theme == "lcars":
         with st.spinner("PROCESSING — PLEASE STAND BY..."):
             opt_results = main.run(gui_mode=True)
             data = Output.outputTable(opt_results["rt"], opt_results["mdot"], opt_results["mach"], theme)
+            mdot_fuel = data["mdot"] / (1 + P.Oxidiser_Fuel_Ratio)
+            mdot_ox = data["mdot"] - mdot_fuel
 
         lcars_divider("GEOMETRY + DIMENSIONS", "#ff9900")
         with st.container(border=True):
@@ -467,6 +546,8 @@ if theme == "lcars":
                 lcars_metric("CEA Ideal Isp",             f"{data['Isp_cea']:.1f} s")
             with e2:
                 lcars_metric("Mass Flow Rate", f"{data['mdot']:.3f} kg/s")
+                lcars_metric("Oxidiser Flow Rate", f"{mdot_ox:.3f} kg/s")
+                lcars_metric("Fuel Flow Rate", f"{mdot_fuel:.3f} kg/s")
 
         if data["fig"]:
             lcars_divider("METHOD OF CHARACTERISTICS GRID", "#4488ff")
@@ -654,14 +735,11 @@ elif theme == "crt":
 
     with st.sidebar:
         st.header("01 // PERFORMANCE")
-        P.Selected_Propellant = st.selectbox(
-            "Propellant",
-            options=[k for k, _ in PROPELLANT_OPTIONS],
-            format_func=lambda k: PROPELLANTS[k].name,
-        )
+        _sweep_slot = propellant_inputs()
         pc_mPa                  = st.number_input("Chamber Pressure (Bar)", 10, 200, 34)
         P.Ambient_P             = st.number_input("Ambient Pressure (Pa)", 0, 101325, 101325)
         of_val                  = st.number_input("O/F Ratio", value=5.13)
+        of_sweep_chart(_sweep_slot, pc_mPa, of_val)
         thrust_val              = st.number_input("Target Thrust (N)", value=600)
         P.Combustion_Efficiency = st.number_input("Combustive Efficiency (%)", 0, 100, 85) / 100
         P.Refinement            = st.number_input("Refinement Factor", value=100)
@@ -670,7 +748,7 @@ elif theme == "crt":
         st.header("02 // CHAMBER")
         P.Lstar_Sizing = st.toggle("Size Length From L*", value=True)
         if P.Lstar_Sizing:
-            _prop = PROPELLANTS[P.Selected_Propellant]
+            _prop = P.get_propellant()
             _short, _nominal, _elong = (float(v) for v in _prop.Lstar_range)
             P.Lstar_Value = st.slider(
                 "Chamber L* (m)",
@@ -689,7 +767,7 @@ elif theme == "crt":
             )
         else:
             P.L_combustion = st.number_input("Total Chamber Length", value=83.02)
-        P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
+        P.Contraction_ratio = st.number_input("Contraction Ratio", value=16.00, step=0.01)
         P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
         P.R1                = st.number_input("Radius 1", value=10)
         P.R2                = st.number_input("Radius 2", value=50)
@@ -709,6 +787,8 @@ elif theme == "crt":
         with st.spinner("CONVERGING ON GEOMETRY..."):
             opt_results = main.run(gui_mode=True)
             data = Output.outputTable(opt_results["rt"], opt_results["mdot"], opt_results["mach"], theme)
+            mdot_fuel = data["mdot"] / (1 + P.Oxidiser_Fuel_Ratio)
+            mdot_ox = data["mdot"] - mdot_fuel
 
         st.header("FINAL NOZZLE DESIGN SPECIFICATIONS")
 
@@ -751,6 +831,8 @@ elif theme == "crt":
             e1.metric("Specific Impulse (Design)", f"{data['Isp_design']:.1f} s")
             e1.write(f"**CEA Ideal Isp:** {data['Isp_cea']:.1f} s")
             e2.metric("Mass Flow Rate", f"{data['mdot']:.3f} kg/s")
+            e2.metric("Oxidiser Flow Rate", f"{mdot_ox:.3f} kg/s")
+            e2.metric("Fuel Flow Rate", f"{mdot_fuel:.3f} kg/s")
 
         if data["fig"]:
             st.divider()
@@ -771,14 +853,11 @@ elif theme == "standard":
         st.title("Parameters")
 
         with st.expander("Performance", expanded=True):
-            P.Selected_Propellant = st.selectbox(
-                "Propellant",
-                options=[k for k, _ in PROPELLANT_OPTIONS],
-                format_func=lambda k: PROPELLANTS[k].name,
-            )
+            _sweep_slot = propellant_inputs()
             pc_mPa                  = st.number_input("Chamber Pressure (Bar)", 10, 200, 34)
             P.Ambient_P             = st.number_input("Ambient Pressure (Pa)", 0, 101325, 101325)
             of_val                  = st.number_input("O/F Ratio", value=5.13)
+            of_sweep_chart(_sweep_slot, pc_mPa, of_val)
             thrust_val              = st.number_input("Target Thrust (N)", value=600)
             P.Combustion_Efficiency = st.number_input("Combustion Efficiency (%)", 0, 100, 85) / 100
             P.Refinement            = st.number_input("Refinement Factor", value=100)
@@ -787,7 +866,7 @@ elif theme == "standard":
         with st.expander("Chamber Geometry", expanded=False):
             P.Lstar_Sizing = st.toggle("Size Length From L*", value=True)
             if P.Lstar_Sizing:
-                _prop = PROPELLANTS[P.Selected_Propellant]
+                _prop = P.get_propellant()
                 _short, _nominal, _elong = (float(v) for v in _prop.Lstar_range)
                 P.Lstar_Value = st.slider(
                     "Chamber L* (m)",
@@ -806,7 +885,7 @@ elif theme == "standard":
                 )
             else:
                 P.L_combustion = st.number_input("Total Chamber Length", value=83.02)
-            P.Contraction_ratio = st.number_input("Contraction Ratio", value=16)
+            P.Contraction_ratio = st.number_input("Contraction Ratio", value=16.00, step=0.01)
             P.Chamber_Slope     = st.number_input("Convergent Chamber Slope", value=45)
             P.R1                = st.number_input("Radius 1", value=10)
             P.R2                = st.number_input("Radius 2", value=50)
@@ -829,6 +908,8 @@ elif theme == "standard":
         with st.spinner("Running solver..."):
             opt_results = main.run(gui_mode=True)
             data = Output.outputTable(opt_results["rt"], opt_results["mdot"], opt_results["mach"], theme)
+            mdot_fuel = data["mdot"] / (1 + P.Oxidiser_Fuel_Ratio)
+            mdot_ox = data["mdot"] - mdot_fuel
 
         # Geometry
         st.subheader("Geometry")
@@ -868,6 +949,8 @@ elif theme == "standard":
         t1.metric("Predicted Thrust", f"{data['Thrust_total']:.1f} N")
         t2.metric("Exit Pressure",    f"{data['P_exit']/1000:.2f} kPa")
         t3.metric("Mass Flow Rate",   f"{data['mdot']:.4f} kg/s")
+        t3.metric("Oxidiser Flow Rate", f"{mdot_ox:.4f} kg/s")
+        t3.metric("Fuel Flow Rate",   f"{mdot_fuel:.4f} kg/s")
 
         if data["P_exit"] < 0.4 * P.Ambient_P:
             st.warning("Flow separation risk — exit pressure is below 40% of ambient pressure.")

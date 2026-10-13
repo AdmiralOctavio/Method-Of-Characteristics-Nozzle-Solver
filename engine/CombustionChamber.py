@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.integrate import trapezoid
 import engine.Parameters as P
-from engine.Fuels import PROPELLANTS
 
 
 def _convergent_volume(R1, R2, Rt, alpha, R_inlet, L_straight, L_total):
@@ -37,8 +36,7 @@ def _length_from_lstar(R1, R2, Rt, alpha, R_inlet, L_straight, L_total):
     """
     Lstar_m = getattr(P, "Lstar_Value", None)
     if Lstar_m is None:  # legacy fallback to the discrete short/nominal/elongated option
-        prop = PROPELLANTS[P.Selected_Propellant]
-        Lstar_m = prop.get_lstar(getattr(P, "Lstar_Option", "nominal"))
+        Lstar_m = P.get_propellant().get_lstar(getattr(P, "Lstar_Option", "nominal"))
     Lstar_mm = Lstar_m * 1000.0  # m -> mm
 
     A_throat = np.pi * Rt ** 2
@@ -74,12 +72,19 @@ def CombustionChamber(wall_x, wall_y, R1, R2, L_throat):
     else:
         Length = P.L_combustion
 
+    # Extra sampling so CAD splines don't misbehave on long straight/empty spans.
+    N_barrel = 8   # nodes along the cylindrical chamber barrel (constant radius)
+    N_bridge = 25   # nodes bridging the throat arc end -> first characteristic point
+
     theta_inlet = np.linspace(0, alpha, 50)
     x_arc_inlet = -L_total + R2 * np.sin(theta_inlet)
     y_arc_inlet = R_inlet - R2 * (1 - np.cos(theta_inlet))
 
-    x_line_cont = -Length
-    y_line_cont = R_inlet
+    # Cylindrical barrel: straight, constant-radius run from the chamber head
+    # (-Length) to the start of the inlet arc (-L_total). endpoint=False avoids
+    # duplicating the inlet arc's first node.
+    x_barrel = np.linspace(-Length, -L_total, N_barrel, endpoint=False)
+    y_barrel = np.full_like(x_barrel, R_inlet)
 
     x_t1, y_t1 = x_arc_inlet[-1], y_arc_inlet[-1]
     x_t2 = x_t1 + L_straight * np.cos(alpha)
@@ -91,14 +96,16 @@ def CombustionChamber(wall_x, wall_y, R1, R2, L_throat):
     x_arc_throat = -R1 * np.sin(theta_throat)
     y_arc_throat = Rt + R1 * (1 - np.cos(theta_throat))
 
-    wall_x = np.append(x_arc_throat, wall_x)
-    wall_x = np.append(x_line, wall_x)
-    wall_x = np.append(x_arc_inlet, wall_x)
-    wall_x = np.append(x_line_cont, wall_x)
+    # Bridge the gap between the throat arc end (min radius) and the first
+    # characteristic point with interior nodes so the spline stays tame there.
+    x_bridge = np.linspace(x_arc_throat[-1], wall_x[0], N_bridge + 2)[1:-1]
+    y_bridge = np.linspace(y_arc_throat[-1], wall_y[0], N_bridge + 2)[1:-1]
 
-    wall_y = np.append(y_arc_throat, wall_y)
-    wall_y = np.append(y_line, wall_y)
-    wall_y = np.append(y_arc_inlet, wall_y)
-    wall_y = np.append(y_line_cont, wall_y)
+    wall_x = np.concatenate(
+        [x_barrel, x_arc_inlet, x_line, x_arc_throat, x_bridge, wall_x]
+    )
+    wall_y = np.concatenate(
+        [y_barrel, y_arc_inlet, y_line, y_arc_throat, y_bridge, wall_y]
+    )
 
     return wall_x, wall_y

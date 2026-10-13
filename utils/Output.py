@@ -5,6 +5,7 @@ from rich.text import Text
 from rich.rule import Rule
 import engine.Parameters as Param
 import numpy as np
+import csv
 import utils.stlgenerator as stlgenerator
 import os
 import engine.solver_lcars as solver_lcars
@@ -35,6 +36,66 @@ Dxf = Param.Dxf
 Output file. Just outputs a table with the important design parameters, along with activating the write functions if required.
 
 '''
+
+def write_params_csv(data, filepath):
+    """Write a params.csv holding every inputted and outputted parameter.
+
+    Each row is (category, parameter, value, unit) so the file is
+    self-documenting and easy to diff between runs.
+    """
+    if Param.Lstar_Sizing:
+        chamber_len_row = ("Input", "Chamber L*", Param.Lstar_Value, "m")
+    else:
+        chamber_len_row = ("Input", "Chamber Length", Param.L_combustion, "mm")
+
+    rows = [
+        # ── Inputs ────────────────────────────────────────────────────────────
+        ("Input", "Propellant", Param.get_propellant().name, "-"),
+        ("Input", "Chamber Pressure", Param.P_combustion, "Pa"),
+        ("Input", "Ambient Pressure", Param.Ambient_P, "Pa"),
+        ("Input", "O/F Ratio", Param.Oxidiser_Fuel_Ratio, "-"),
+        ("Input", "Target Thrust", Param.Thrust, "N"),
+        ("Input", "Combustion Efficiency", Param.Combustion_Efficiency, "-"),
+        ("Input", "Refinement Factor", Param.Refinement, "-"),
+        ("Input", "Nozzle Length Fraction", Param.Shorten_Percentage, "-"),
+        ("Input", "L* Sizing", Param.Lstar_Sizing, "bool"),
+        chamber_len_row,
+        ("Input", "Contraction Ratio", Param.Contraction_ratio, "-"),
+        ("Input", "Chamber Slope", Param.Chamber_Slope, "deg"),
+        ("Input", "Radius 1", Param.R1, "mm"),
+        ("Input", "Radius 2", Param.R2, "mm"),
+        # ── Outputs ───────────────────────────────────────────────────────────
+        ("Output", "Nozzle Length", data["wall_x"][-1], "mm"),
+        ("Output", "Total Length", data["total_length"], "mm"),
+        ("Output", "Throat Radius", data["y_min"], "mm"),
+        ("Output", "Throat Diameter", 2 * data["y_min"], "mm"),
+        ("Output", "Chamber Diameter",
+         2 * data["y_min"] * np.sqrt(Param.Contraction_ratio), "mm"),
+        ("Output", "Exit Radius", data["exit_radius"], "mm"),
+        ("Output", "Exit Angle", data["Exit_Angle"], "deg"),
+        ("Output", "Combustion Temperature", data["T_comb"], "K"),
+        ("Output", "Gamma", data["g"], "-"),
+        ("Output", "Optimal Exit Mach", data["M_opt"], "-"),
+        ("Output", "Optimal Expansion Ratio", data["AR_opt"], "-"),
+        ("Output", "Theoretical Expansion Ratio", data["AR_theoretical"], "-"),
+        ("Output", "True Expansion Ratio", data["AR_true"], "-"),
+        ("Output", "Design Exit Mach", data["M_exit_design"], "-"),
+        ("Output", "Predicted Exit Mach", data["M_exit_predicted"], "-"),
+        ("Output", "Total Thrust", data["Thrust_total"], "N"),
+        ("Output", "Momentum Thrust", data["Thrust_momentum"], "N"),
+        ("Output", "Pressure Thrust", data["Thrust_pressure"], "N"),
+        ("Output", "Exit Pressure", data["P_exit"], "Pa"),
+        ("Output", "Exit Velocity", data["Ve"], "m/s"),
+        ("Output", "Specific Impulse (Design)", data["Isp_design"], "s"),
+        ("Output", "Specific Impulse (CEA)", data["Isp_cea"], "s"),
+        ("Output", "Mass Flow Rate", data["mdot"], "kg/s"),
+    ]
+
+    with open(filepath, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Category", "Parameter", "Value", "Unit"])
+        writer.writerows(rows)
+
 
 def outputTable(R, mdot, mach, theme):
     console = Console()
@@ -247,7 +308,7 @@ def outputTable(R, mdot, mach, theme):
 
     table.add_row(
         "[light_green]Specific impulse:",
-        f"[light_green]{Ve / 9.80665:.2f} s",
+        f"[light_green]{Thrust / (mdot * 9.80665):.2f} s",
         " ",
         "[light_green]CEA ISp:",
         f"[light_green]{ISP_cea:.2f} s",
@@ -266,8 +327,8 @@ def outputTable(R, mdot, mach, theme):
 
     if Write:
         wall_z = np.zeros_like(wall_x)
-        combined = np.stack((wall_x/10, wall_y/10, wall_z), axis=1)
-        filename = f"Nozzle_Contour_M={M_exit:.2f}.csv"
+        combined = np.stack((wall_x, wall_y), axis=1)
+        filename = f"Contour.csv"
         filepath = os.path.join(folder_name, filename)
         np.savetxt(
             filepath,
@@ -282,7 +343,7 @@ def outputTable(R, mdot, mach, theme):
     if Dxf:
         stlgenerator.create_dxf(wall_x / 1000, wall_y_mirrored / 1000, M_exit)
 
-    return {
+    result = {
         "wall_x": wall_x,
         "wall_y": wall_y,
         "Exit_Angle": Exit_Angle,
@@ -308,3 +369,9 @@ def outputTable(R, mdot, mach, theme):
         "total_length": wall_x[-1] - wall_x[0],
         "exit_radius": wall_y[-1],
     }
+
+    if Write:
+        params_path = os.path.join(folder_name, "params.csv")
+        write_params_csv(result, params_path)
+
+    return result

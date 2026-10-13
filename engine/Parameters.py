@@ -3,7 +3,7 @@ from rocketcea.blends import newFuelBlend
 from rich import print
 import cea
 import numpy as np
-from engine.Fuels import PROPELLANTS
+from engine.Fuels import build_propellant
 
 # Default Constants & UI-Linked Parameters
 P_combustion = 3.4 * 10**6
@@ -17,7 +17,9 @@ Combustion_Efficiency = 0.875
 Graph2d = False
 Graph3d = True
 Ambient_P = 101325
-Selected_Propellant = "n2o_ethanol100"  # Default
+Selected_Oxidiser = "n2o"  # Default
+Selected_Fuel = "ethanol"  # Default
+Fuel_Concentration = 100.0    # wt% fuel in a fuel-water blend; ignored for unblended fuels
 
 # Aesthetic / Export Options
 Graph3d_Fancy = False
@@ -58,12 +60,43 @@ ISP_cea = 0.0
 g_exit = 1.2
 
 
+def get_propellant():
+    """PropellantConfig for the selected oxidiser / fuel / fuel concentration."""
+    return build_propellant(Selected_Oxidiser, Selected_Fuel, float(Fuel_Concentration))
+
+
+def of_sweep(pc_pa, n=41):
+    """Ideal CEA Isp (s) across an O/F sweep for the selected propellant.
+
+    The sweep spans 0.3-1.4x the stoichiometric O/F, which brackets the Isp
+    peak for every oxidiser / fuel pair. Returns (of_values, isp, of_stoich).
+    """
+    prop = get_propellant()
+    of_stoich = prop.make_cea_obj().getMRforER(ERphi=1.0)
+    of_values = np.linspace(0.3 * of_stoich, 1.4 * of_stoich, n)
+
+    reac, prod = prop.make_mixture()
+    solver = cea.RocketSolver(prod, reactants=reac)
+    pc_bar = pc_pa / 1e5
+    pressure_ratio = pc_pa / max(Ambient_P, 1.0)
+
+    isp = np.full(n, np.nan)
+    for i, of_ratio in enumerate(of_values):
+        solution = cea.RocketSolution(solver)
+        solver.solve(
+            solution, prop.get_weights(of_ratio), pc_bar, pressure_ratio,
+            subar=[16], supar=[5.5], hc=prop.get_enthalpy_coeff(of_ratio), iac=True,
+        )
+        isp[i] = solution.Isp[2] / 9.80665
+    return of_values, isp, of_stoich
+
+
 def update_engine_data(pc_pa, of_ratio):
     """Calculates chemistry based on UI or manual inputs."""
     global T_combustion, Cstr, g, Rs, ISP_cea, g_exit
 
     # Fuel Definitions
-    prop = PROPELLANTS[Selected_Propellant]
+    prop = get_propellant()
     weights = prop.get_weights(of_ratio)
     reac, prod = prop.make_mixture()
     hc = prop.get_enthalpy_coeff(of_ratio)
@@ -88,10 +121,29 @@ def update_engine_data(pc_pa, of_ratio):
     g_exit = config2[1]
     print(f"Exit gamma: {g_exit}")
 
+    # For CFD Stuff
+
     config3 = obj.get_Throat_MolWt_gamma(Pc=pc_bar, MR=of_ratio, eps=5.77)
     g = config3[1]
     Mw = config3[0] / 1000
+    print(f"{g} = THROPAT GAMMA MM TYUMMY")
     Rs = 8.314 / Mw
+
+    # More CFD stuff
+
+    config_chamber = obj.get_Chamber_MolWt_gamma(Pc=pc_bar, MR=of_ratio, eps=5.77)
+    MolWt_chamber = config_chamber[0]
+    gamma_chamber = config_chamber[1]
+    Cp_ch, mu_ch, k_ch, Pr_ch = obj.get_Chamber_Transport(Pc=pc_bar, MR=of_ratio, eps=5.77)
+    Cp_ch_SI = Cp_ch * 4184      # cal/(g·K) -> J/(kg·K), same conversion as throat
+    mu_ch_SI = mu_ch * 1e-4      # millipoise -> Pa·s
+    print(f"{MolWt_chamber} = Chamber Molecular Weight")
+    print(f"{gamma_chamber} = Chamber Gamma")
+    print(f"{Cp_ch_SI} = Cp in SI chamber")
+    print(f"{mu_ch_SI} = Chamber mu")
+    
+
+
 
 
 # Initial run to populate globals

@@ -186,32 +186,31 @@ def main(mdot, L, mach):
 
         y_min = np.min(wall_y)
 
-        A_calc = (y_calc / 1000) ** 2 * np.pi
+        # Exit plane = the end of the *truncated* contour. y_calc is that last
+        # wall point (captured before the chamber is prepended), so every exit
+        # condition below is evaluated on the geometry actually being built.
+        A_exit = (y_calc / 1000) ** 2 * np.pi
         A_throat = (y_min / 1000) ** 2 * np.pi
 
-        x_final_characteristic, a = GridField.get_xy(grid, 1, n_max - 1)
-        index = np.argmin(np.abs(wall_x - x_final_characteristic))
-        y_final_characteristic = wall_y[index]
+        M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, Param.g_exit, "supersonic")
 
-        A_exit = (y_final_characteristic / 1000) ** 2 * np.pi
-        # M_exit_characteristic = IT.AreaRatioInverse(A_exit / A_throat, g, 'supersonic')
-        M_exit_characteristic = IT.AreaRatioInverse(A_calc / A_throat, Param.g_exit, "supersonic")
+        Cstr_delivered  = Cstr * Param.Combustion_Efficiency
+        P_c_actual      = mdot * Cstr_delivered / A_throat
+        T_c_effective   = T_combustion * Param.Combustion_Efficiency**2
 
-        P_exit = IT.Pressure(P_combustion, Param.g_exit, M_exit_characteristic)
-        T_exit = IT.Temperature(T_combustion, Param.g_exit, M_exit_characteristic)
+        P_exit = IT.Pressure(P_c_actual, Param.g_exit, M_exit_characteristic)
+        T_exit = IT.Temperature(T_c_effective, Param.g_exit, M_exit_characteristic)
         A = IT.LocalSoS(Param.g_exit, Rs, T_exit)
 
-        Ve = A * M_exit_characteristic * Efficiency
-        Thrust = mdot * Ve + (P_exit - P_amb) * A_exit
+        Ve      = A * M_exit_characteristic * Param.Nozzle_Efficiency
+        Thrust  = mdot * Ve + (P_exit - P_amb) * A_exit
+        C_F     = Thrust / (P_c_actual* A_throat)
+        A_throat_new    = (Thrust_target) / (C_F * P_c_actual)
+        mdot_new        = P_c_actual * A_throat_new / Cstr_delivered
 
         time1 = time.time()
 
         print(f"\nComputation Time: {time1 - time0:.2f} seconds\n")
-
-        C_F = Thrust / (P_combustion * A_throat)
-        A_throat_new = (Thrust_target) / (C_F * P_combustion)
-
-        mdot_new = P_combustion * A_throat_new / Cstr
 
         print("\n" + "=" * 60)
         print("FINAL CALCULATION CHECK | SOLVER_ITERATION.PY")
